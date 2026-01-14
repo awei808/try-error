@@ -1,205 +1,9 @@
-// 报错弹窗管理器
-class ErrorPopupManager {
-    constructor() {
-        this.popupBox = document.getElementById('popupBox');
-        this.maxErrors = 3;
-        this.errorTimeout = 500000; // 5秒
-        this.currentErrors = new Map(); // 存储错误ID和对应的元素
-        
-        this.init();
-    }
-    
-    init() {
-        // 确保popupBox存在
-        if (!this.popupBox) {
-            this.popupBox = document.createElement('div');
-            this.popupBox.id = 'popupBox';
-            //this.popupBox.className = 'popup-box-container';
-            document.body.appendChild(this.popupBox);
-        }
-        
-        // 绑定debugError按钮事件
-        const debugErrorBtn = document.getElementById('debugError');
-        if (debugErrorBtn) {
-            debugErrorBtn.addEventListener('click', () => {
-                this.showError('这是一个测试报错信息，用于调试报错弹窗功能。');
-            });
-        }
-    }
-    
-    /**
-     * 显示报错弹窗
-     * @param {string} message 报错信息
-     * @param {string} type 错误类型（可选）
-     */
-    showError(message, type = 'error') {
-        // 生成唯一ID
-        const errorId = 'error-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        
-        // 创建报错div
-        const errorDiv = this.createErrorPopup(message, type, errorId);
-        
-        // 如果已经有3个报错，移除最先出现的
-        if (this.currentErrors.size >= this.maxErrors) {
-            this.removeOldestError();
-        }
-        
-        // ✅ 移除手动上移逻辑，依赖Flex布局自动排列
-        //this.moveUpExistingErrors();
-        
-        // 添加新的报错div
-        this.popupBox.appendChild(errorDiv);
-        this.currentErrors.set(errorId, errorDiv);
-        
-        // 设置5秒后自动消失
-        const timeoutId = setTimeout(() => {
-            this.removeError(errorId);
-        }, this.errorTimeout);
-        
-        // 存储timeout ID以便可以手动清除
-        errorDiv.dataset.timeoutId = timeoutId;
-    }
-    
-    /**
-     * 创建报错弹窗元素
-     */
-    createErrorPopup(message, type, errorId) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-popup';
-        errorDiv.id = errorId;
-        
-        errorDiv.innerHTML = `
-            <div class="error-popup-content">
-                <div class="error-popup-icon">⚠️</div>
-                <p class="error-popup-message">${this.escapeHtml(message)}</p>
-                <button class="error-popup-close" onclick="errorManager.removeError('${errorId}')">×</button>
-            </div>
-        `;
-        
-        return errorDiv;
-    }
-    
-    /**
-     * 上移现有的报错div（使用实际高度）
-     */
-    /*moveUpExistingErrors() {
-        const existingErrors = Array.from(this.popupBox.children);
-        
-        if (existingErrors.length === 0) return;
-        
-        // 计算新报错的高度（预估）
-        const newErrorHeight = 60; // 预估新报错高度
-        const spacing = 10; // 间距
-
-        existingErrors.forEach((errorDiv, index) => {
-            // 获取当前报错的实际高度
-            const currentHeight = errorDiv.offsetHeight || 60;
-            
-            // 移动距离 = 新报错高度 + 间距 + 前面报错的高度累计
-            let moveDistance = newErrorHeight + spacing;
-            
-            // 累加前面报错的高度
-            for (let i = 0; i < index; i++) {
-                const prevError = existingErrors[i];
-                moveDistance += (prevError.offsetHeight || 60) + spacing;
-            }
-            
-            errorDiv.style.transform = `translateY(-${moveDistance}px)`;
-            errorDiv.style.transition = 'transform 0.3s ease';
-        });
-    }*/
-    
-    /**
-     * 移除最旧的报错
-     */
-    removeOldestError() {
-        if (this.currentErrors.size === 0) return;
-        
-        const oldestId = Array.from(this.currentErrors.keys())[0];
-        this.removeError(oldestId);
-    }
-    
-    /**
-     * 移除指定ID的报错
-     */
-    removeError(errorId) {
-        const errorDiv = this.currentErrors.get(errorId);
-        if (!errorDiv) return;
-        
-        // 清除定时器
-        const timeoutId = errorDiv.dataset.timeoutId;
-        if (timeoutId) {
-            clearTimeout(parseInt(timeoutId));
-        }
-        
-        // 添加淡出动画
-        errorDiv.classList.add('fade-out');
-        
-        // 动画结束后移除元素
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-            }
-            this.currentErrors.delete(errorId);
-            
-        // ✅ 移除手动重定位逻辑，Flex会自动调整剩余弹窗位置
-            // this.repositionRemainingErrors();
-        }, 300);
-    }
-    
-    /**
-     * 重新定位剩余的报错
-     */
-    /*repositionRemainingErrors() {
-        const remainingErrors = Array.from(this.popupBox.children);
-        remainingErrors.forEach((errorDiv, index) => {
-            errorDiv.style.transform = `translateY(-${index * 60}px)`;
-        });
-    }*/
-    
-    /**
-     * HTML转义
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    /**
-     * 清除所有报错
-     */
-    clearAllErrors() {
-        Array.from(this.currentErrors.keys()).forEach(errorId => {
-            this.removeError(errorId);
-        });
-    }
-}
-
-// 全局错误管理器实例
-const errorManager = new ErrorPopupManager();
-
-// 全局错误显示函数
-function showError(message, type = 'error') {
-    errorManager.showError(message, type);
-}
-
-// 全局错误清除函数
-function clearAllErrors() {
-    errorManager.clearAllErrors();
-}
-
-// 导出到全局作用域
-window.errorManager = errorManager;
-window.showError = showError;
-window.clearAllErrors = clearAllErrors;
-
 // 弹窗管理器
 class PopupManager {
     constructor() {
         this.popupBox = document.getElementById('popupBox');
-        this.maxPopups = 3;
-        this.popupTimeout = 5000; // 5秒
+        this.maxPopups = 3; // 最多同时存在3个弹窗
+        this.popupTimeout = 5000; // 5秒后自动消失
         this.currentPopups = new Map(); // 存储弹窗ID和对应的元素
         
         this.init();
@@ -208,10 +12,49 @@ class PopupManager {
     init() {
         // 确保popupBox存在
         if (!this.popupBox) {
-            this.popupBox = document.createElement('div');
-            this.popupBox.id = 'popupBox';
-            this.popupBox.className = 'popup-box-container';
-            document.body.appendChild(this.popupBox);
+            this.createPopupBox();
+        }
+        
+        // 绑定测试按钮事件
+        this.bindTestButtons();
+    }
+    
+    /**
+     * 创建弹窗容器
+     */
+    createPopupBox() {
+        this.popupBox = document.createElement('div');
+        this.popupBox.id = 'popupBox';
+        this.popupBox.className = 'popup-box-container';
+        document.body.appendChild(this.popupBox);
+    }
+    
+    /**
+     * 绑定测试按钮事件
+     */
+    bindTestButtons() {
+        // 绑定error测试按钮
+        const debugErrorBtn = document.getElementById('debugError');
+        if (debugErrorBtn) {
+            debugErrorBtn.addEventListener('click', () => {
+                this.showPopup('这是一个错误测试信息，用于调试弹窗功能。', 'error');
+            });
+        }
+        
+        // 绑定success测试按钮
+        const debugSuccessBtn = document.getElementById('debugSuccess');
+        if (debugSuccessBtn) {
+            debugSuccessBtn.addEventListener('click', () => {
+                this.showPopup('操作成功完成！数据已保存。', 'success');
+            });
+        }
+        
+        // 绑定warning测试按钮
+        const debugWarningBtn = document.getElementById('debugWarning');
+        if (debugWarningBtn) {
+            debugWarningBtn.addEventListener('click', () => {
+                this.showPopup('警告：内存使用率较高，建议优化。', 'warning');
+            });
         }
     }
     
@@ -236,7 +79,7 @@ class PopupManager {
         this.popupBox.appendChild(popupDiv);
         this.currentPopups.set(popupId, popupDiv);
         
-        // 设置5秒后自动消失
+        // 设置5秒后自动消失的计时器
         const timeoutId = setTimeout(() => {
             this.removePopup(popupId);
         }, this.popupTimeout);
@@ -246,14 +89,14 @@ class PopupManager {
     }
     
     /**
-     * 创建弹窗元素（修复版）
+     * 创建弹窗元素
      */
     createPopup(message, type, popupId) {
         const popupDiv = document.createElement('div');
         popupDiv.className = `popup ${type}-popup`;
         popupDiv.id = popupId;
         
-        // 根据类型设置图标
+        // 根据类型设置图标和样式
         let icon = '⚠️';
         if (type === 'success') icon = '✅';
         if (type === 'warning') icon = '⚠️';
@@ -267,10 +110,19 @@ class PopupManager {
             </div>
         `;
         
-        // 使用事件监听器替代onclick（更可靠）
+        // 绑定关闭按钮事件
+        this.bindCloseButton(popupDiv, popupId);
+        
+        return popupDiv;
+    }
+    
+    /**
+     * 绑定关闭按钮事件
+     */
+    bindCloseButton(popupDiv, popupId) {
         const closeButton = popupDiv.querySelector('.popup-close');
         closeButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止事件冒泡
+            e.stopPropagation();
             this.removePopup(popupId);
         });
         
@@ -281,8 +133,6 @@ class PopupManager {
                 this.removePopup(popupId);
             }
         });
-        
-        return popupDiv;
     }
     
     /**
@@ -291,6 +141,7 @@ class PopupManager {
     removeOldestPopup() {
         if (this.currentPopups.size === 0) return;
         
+        // 获取最旧的弹窗ID（Map的第一个键）
         const oldestId = Array.from(this.currentPopups.keys())[0];
         this.removePopup(oldestId);
     }
@@ -321,6 +172,15 @@ class PopupManager {
     }
     
     /**
+     * 清除所有弹窗
+     */
+    clearAllPopups() {
+        Array.from(this.currentPopups.keys()).forEach(popupId => {
+            this.removePopup(popupId);
+        });
+    }
+    
+    /**
      * HTML转义
      */
     escapeHtml(text) {
@@ -330,12 +190,10 @@ class PopupManager {
     }
     
     /**
-     * 清除所有弹窗
+     * 获取当前弹窗数量
      */
-    clearAllPopups() {
-        Array.from(this.currentPopups.keys()).forEach(popupId => {
-            this.removePopup(popupId);
-        });
+    getPopupCount() {
+        return this.currentPopups.size;
     }
 }
 
@@ -347,12 +205,34 @@ function showPopup(message, type = 'error') {
     popupManager.showPopup(message, type);
 }
 
+// 兼容旧版本的showError函数
+function showError(message, type = 'error') {
+    showPopup(message, type);
+}
+
 // 全局弹窗清除函数
 function clearAllPopups() {
     popupManager.clearAllPopups();
 }
 
+// 兼容旧版本的clearAllErrors函数
+function clearAllErrors() {
+    clearAllPopups();
+}
+
 // 导出到全局作用域
 window.popupManager = popupManager;
 window.showPopup = showPopup;
+window.showError = showError;
 window.clearAllPopups = clearAllPopups;
+window.clearAllErrors = clearAllErrors;
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('弹窗系统已初始化');
+    
+    // 测试弹窗功能
+    setTimeout(() => {
+        showPopup('弹窗系统初始化成功！', 'success');
+    }, 1000);
+});
