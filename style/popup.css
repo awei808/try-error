@@ -1,59 +1,86 @@
-/* 报错弹窗容器样式 */
-.error-box-container {
+/* 弹窗容器样式 - 固定在右下角 */
+.popup-box-container {
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 1000;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse; /* 新的在最下面 */
     gap: 10px;
     max-width: 350px;
-    pointer-events: none;
 }
 
-/* 单个报错弹窗样式 */
-.error-popup {
+/* 通用弹窗样式 */
+.popup {
     position: relative;
-    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
     color: white;
     padding: 16px 20px;
     border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
-    animation: slideInRight 0.3s ease-out;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    animation: slideInUp 0.3s ease-out;
     pointer-events: auto;
     max-width: 100%;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
 }
 
-.error-popup.fade-out {
-    animation: slideOutRight 0.3s ease-in forwards;
+/* 错误弹窗样式 */
+.error-popup {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
 }
 
-.error-popup::before {
+/* 警告弹窗样式 */
+.warning-popup {
+    background: linear-gradient(135deg, #ffa726, #f57c00);
+}
+
+/* 成功弹窗样式 */
+.success-popup {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+}
+
+.popup.fade-out {
+    animation: slideOutDown 0.3s ease-in forwards;
+}
+
+/* 顶部装饰条 */
+.popup::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #ff9a9e, #fad0c4);
     border-radius: 12px 12px 0 0;
 }
 
-.error-popup-content {
+.error-popup::before {
+    background: linear-gradient(90deg, #ff9a9e, #fad0c4);
+}
+
+.warning-popup::before {
+    background: linear-gradient(90deg, #ffb74d, #ff9800);
+}
+
+.success-popup::before {
+    background: linear-gradient(90deg, #81c784, #4caf50);
+}
+
+.popup-content {
     display: flex;
     align-items: flex-start;
     gap: 12px;
 }
 
-.error-popup-icon {
+.popup-icon {
     font-size: 20px;
     margin-top: 2px;
     flex-shrink: 0;
 }
 
-.error-popup-message {
+.popup-message {
     flex: 1;
     font-size: 14px;
     line-height: 1.4;
@@ -61,7 +88,7 @@
     word-wrap: break-word;
 }
 
-.error-popup-close {
+.popup-close {
     background: none;
     border: none;
     color: white;
@@ -78,70 +105,70 @@
     justify-content: center;
 }
 
-.error-popup-close:hover {
+.popup-close:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 动画效果 */
-@keyframes slideInRight {
+@keyframes slideInUp {
     from {
-        transform: translateX(100%);
+        transform: translateY(100%);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
 }
 
-@keyframes slideOutRight {
+@keyframes slideOutDown {
     from {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
     to {
-        transform: translateX(100%);
+        transform: translateY(100%);
         opacity: 0;
     }
 }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-    .error-box-container {
+    .popup-box-container {
         bottom: 15px;
         right: 15px;
         left: 15px;
         max-width: none;
     }
     
-    .error-popup {
+    .popup {
         padding: 14px 16px;
         border-radius: 10px;
     }
     
-    .error-popup-message {
+    .popup-message {
         font-size: 13px;
     }
 }
 
 @media (max-width: 480px) {
-    .error-box-container {
+    .popup-box-container {
         bottom: 10px;
         right: 10px;
         left: 10px;
         gap: 8px;
     }
     
-    .error-popup {
+    .popup {
         padding: 12px 14px;
         border-radius: 8px;
     }
     
-    .error-popup-content {
+    .popup-content {
         gap: 8px;
     }
     
-    .error-popup-message {
+    .popup-message {
         font-size: 12px;
     }
 }
