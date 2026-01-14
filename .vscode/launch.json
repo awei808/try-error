@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Edge打开初等变换1.0.html", // 配置名称（可自定义）
+            "type": "msedge", // 调试器类型（Edge浏览器）
+            "request": "launch", // 启动模式（而非附加模式）
+            "file": "${workspaceFolder}/初等变换1.0.html", // 核心：指定要打开的HTML文件路径
+            /*"runtimeArgs": [
+                "--auto-open-devtools-for-tabs" // 可选：自动打开开发者工具，方便调试all.js
+            ],*/
+            "webRoot": "${workspaceFolder}", // 工作区根目录，用于映射文件
+            "preLaunchTask": "", // 无前置任务，留空即可
+            "sourceMaps": false, // 若未用sourcemap，设为false
+            "timeout": 300000 // 调试超时时间（可选）
+        }
+    ]
+}

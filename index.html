@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初等变换辅助学习</title>
+    <link rel="stylesheet" href="style/window_and_grid.css">
+    <link rel="stylesheet" href="style/base.css">
+    <link rel="stylesheet" href="style/components.css">
+    <link rel="stylesheet" href="style/popup.css">
+    <link rel="stylesheet" href="style/responsive.css">
+</head>
+
+<body>
+    <button id="ButtonInputMartix">录入矩阵</button>
+    <button id="debugError">测试报错</button>
+    <div id="InputMatrix">
+        <div>
+            <div id="window"></div>
+            <p id="coordinates">矩阵维度: 0×0</p>
+        </div>
+        <div class="assist-group">
+            <button id="undoButton" class="action-button">上一步</button>
+            <button id="nextButton" class="action-button">下一步</button>
+            <p id="tip"></p>
+        </div>
+    </div>
+    <!-- 错误提示框 -->
+    <div id="errorBox" class="error-box-container">
+
+    </div>
+
+
+    <script src="script/all.js"></script>
+    <script src="script/popup.js"></script>
+</body>
+
+</html>
