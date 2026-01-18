@@ -16,7 +16,7 @@ class PopupManager {
         }
         
         // 绑定测试按钮事件
-        this.bindTestButtons();
+        //this.bindTestButtons();
     }
     
     /**
@@ -32,7 +32,7 @@ class PopupManager {
     /**
      * 绑定测试按钮事件
      */
-    bindTestButtons() {
+    /*bindTestButtons() {
         // 绑定error测试按钮
         const debugErrorBtn = document.getElementById('debugError');
         if (debugErrorBtn) {
@@ -49,14 +49,14 @@ class PopupManager {
             });
         }
         
-        // 绑定warning测试按钮
+        // 绑定warning测试按钮 v x 
         const debugWarningBtn = document.getElementById('debugWarning');
         if (debugWarningBtn) {
             debugWarningBtn.addEventListener('click', () => {
                 this.showPopup('警告：内存使用率较高，建议优化。', 'warning');
             });
         }
-    }
+    }*/
     
     /**
      * 显示弹窗
@@ -231,8 +231,5 @@ window.clearAllErrors = clearAllErrors;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('弹窗系统已初始化');
     
-    // 测试弹窗功能
-    setTimeout(() => {
-        showPopup('弹窗系统初始化成功！', 'success');
-    }, 1000);
+
 });

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>初等变换辅助学习</title>
-    <link rel="stylesheet" href="./style/window_and_grid.css">
+    <link rel="stylesheet" href="./style/window-and-grid.css">
     <link rel="stylesheet" href="./style/base.css">
     <link rel="stylesheet" href="./style/components.css">
     <link rel="stylesheet" href="./style/popup.css">
@@ -13,9 +14,11 @@
 
 <body>
     <button id="ButtonInputMartix">录入矩阵</button>
+    <!--
     <button id="debugError">测试报错error弹窗</button>
     <button id="debugSuccess">测试成功success弹窗</button>
     <button id="debugWarning">测试警告warning弹窗</button>
+    -->
     <div id="InputMatrix">
         <div>
             <div id="window"></div>
@@ -27,6 +30,31 @@
             <p id="tip"></p>
         </div>
     </div>
+    <!--<div class="hidden_未实装">-->
+        <div class="operator-buttons">
+            <div class="input-group">
+                <input type="text" id="transform-target" placeholder="目标行/列 (如 r1, c2)" class="t-i-group">
+                <select id="transform-operator" class="t-i-group">
+                    <option value="">选择操作</option>
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                    <option value="*">×</option>
+                    <option value="↔">↔</option>
+                </select>
+                <input type="text" id="transform-param" placeholder="参数 (如 r2, 3, 2*r3)" class="t-i-group">
+                <input type="text" id="transform-coefficient">
+                <button id="button-translate">执行初等变换</button>
+            </div>
+        </div>
+        <div class="operator-buttons">
+            <p>快捷符号</p>
+            <button id="button-change">↔</button>
+            <button id="button-add">+</button>
+            <button id="button-sub">−</button>
+            <button id="button-mul">×</button>
+        </div>
+    <!--</div>-->
+
     <!-- 弹窗 -->
     <div id="popupBox" class="popup-box-container">
 
