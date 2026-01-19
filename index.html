@@ -30,7 +30,7 @@
             <p id="tip"></p>
         </div>
     </div>
-    <!--<div class="hidden_未实装">-->
+    <div class="hidden">
         <div class="operator-buttons">
             <div class="input-group">
                 <input type="text" id="transform-target" placeholder="目标行/列 (如 r1, c2)" class="t-i-group">
@@ -41,8 +41,8 @@
                     <option value="*">×</option>
                     <option value="↔">↔</option>
                 </select>
-                <input type="text" id="transform-param" placeholder="参数 (如 r2, 3, 2*r3)" class="t-i-group">
-                <input type="text" id="transform-coefficient">
+                <input type="text" id="transform-param" placeholder="参数 (如 r2)" class="t-i-group">
+                <input type="text" id="transform-coefficient" placeholder="系数">
                 <button id="button-translate">执行初等变换</button>
             </div>
         </div>
@@ -53,14 +53,14 @@
             <button id="button-sub">−</button>
             <button id="button-mul">×</button>
         </div>
-    <!--</div>-->
+    </div>
 
     <!-- 弹窗 -->
     <div id="popupBox" class="popup-box-container">
 
     </div>
 
-
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
     <script src="./script/all.js"></script>
     <script src="./script/popup.js"></script>
 </body>

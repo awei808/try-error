@@ -7,7 +7,8 @@ const CONFIG = {
     STATES: {
         SELECT_DIMENSION: 'select_dimension',
         INPUT_ELEMENTS: 'input_elements',
-        CONFIRM_DATA: 'confirm_data'
+        DATA_VALIDATION: 'data_validation',  // 改为数据校验
+        ELEMENTARY_TRANSFORMATION: 'elementary_transformation'  // 新增初等变换状态
     }
 };
 
@@ -51,12 +52,10 @@ function updateUIForCurrentState() {
     switch (state.currentState) {
         case CONFIG.STATES.SELECT_DIMENSION:
             console.log('to select dimension');
-
             elements.tipDiv.textContent = '点击网格选择矩阵大小';
             elements.nextButton.textContent = '下一步';
             elements.undoButton.disabled = true;
             elements.undoButton.style.opacity = '0.6';
-                       // 启用网格交互
             enableGridInteraction();
             break;
 
@@ -67,18 +66,27 @@ function updateUIForCurrentState() {
             elements.nextButton.textContent = '下一步';
             elements.undoButton.disabled = false;
             elements.undoButton.style.opacity = '1';
-                     // 启用输入框交互
             enableInputInteraction();
             break;
 
-        case CONFIG.STATES.CONFIRM_DATA:
-            console.log('to confirm data');
-            elements.tipDiv.textContent = '确认矩阵数据是否正确，可以点击上一步进行修改';
-            elements.nextButton.textContent = '完成';
+        case CONFIG.STATES.DATA_VALIDATION:  // 改为数据校验状态
+            console.log('to data validation');
+            elements.tipDiv.textContent = '数据校验中，请确保所有输入符合要求（整数、分数、未知数）';
+            elements.nextButton.textContent = '下一步';
             elements.undoButton.disabled = false;
             elements.undoButton.style.opacity = '1';
-                 // 禁用输入框交互
             disableInputInteraction();
+            break;
+
+        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 新增初等变换状态
+            console.log('to elementary transformation');
+            elements.tipDiv.textContent = '可以进行初等变换操作';
+            elements.nextButton.textContent = '完成';
+            elements.nextButton.disabled = true;
+            elements.nextButton.style.opacity = '0.6';
+            elements.undoButton.disabled = false;
+            elements.undoButton.style.opacity = '1';
+            showElementaryTransformationUI();
             break;
     }
 }
@@ -132,26 +140,59 @@ function handleElementInput() {
     const allFilled = fillEmptyInputsAndValidate();
 
     if (!allFilled) {
-        // 替换alert为popup弹窗
         if (typeof showPopup === 'function') {
             showPopup('请填写所有矩阵元素', 'warning');
         } else {
             alert('请填写所有矩阵元素');
         }
-        state.previousStates.pop(); // 移除无效的状态保存
+        state.previousStates.pop();
         return;
     }
 
     // 收集矩阵数据
     collectMatrixData();
 
-    // 切换到确认数据状态
-    state.currentState = CONFIG.STATES.CONFIRM_DATA;
+    // 切换到数据校验状态
+    state.currentState = CONFIG.STATES.DATA_VALIDATION;
     updateUIForCurrentState();
-    
-    // 显示矩阵数据预览
-    showMatrixPreview();
+
+    // 执行数据校验
+    validateMatrixData();
 }
+
+/**
+ * 处理数据校验
+ */
+function handleDataValidation() {
+    // 执行数据校验
+    const validationResult = validateMatrixData();
+
+    if (!validationResult.isValid) {
+        if (typeof showPopup === 'function') {
+            showPopup(`数据校验失败：${validationResult.message}`, 'error');
+        } else {
+            alert(`数据校验失败：${validationResult.message}`);
+        }
+        state.previousStates.pop();
+        return;
+    }
+
+    // 校验通过，切换到初等变换状态
+    state.currentState = CONFIG.STATES.ELEMENTARY_TRANSFORMATION;
+    updateUIForCurrentState();
+}
+
+/**
+ * 处理初等变换完成
+ */
+/*function handleElementaryTransformation() {
+    if (typeof showPopup === 'function') {
+        showPopup(`矩阵录入完成！\n维度: ${state.matrixData.rows}×${state.matrixData.cols}\n数据已保存`, 'success');
+    } else {
+        alert(`矩阵录入完成！\n维度: ${state.matrixData.rows}×${state.matrixData.cols}\n数据已保存`);
+    }
+}*/
+
 
 /**
  * 处理数据确认
@@ -203,7 +244,6 @@ function resetToInitialState() {
  * 处理下一步按钮点击
  */
 function handleNext() {
-    // 保存当前状态到历史
     state.previousStates.push({
         state: state.currentState,
         matrixData: state.matrixData ? JSON.parse(JSON.stringify(state.matrixData)) : null
@@ -220,9 +260,14 @@ function handleNext() {
             handleElementInput();
             break;
 
-        case CONFIG.STATES.CONFIRM_DATA:
-            console.log('in confirm data state, next');
-            handleDataConfirmation();
+        case CONFIG.STATES.DATA_VALIDATION:  // 改为数据校验状态
+            console.log('in data validation state, next');
+            handleDataValidation();
+            break;
+
+        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 新增初等变换状态
+            console.log('in elementary transformation state, next');
+            handleElementaryTransformation();
             break;
     }
 }
@@ -232,7 +277,6 @@ function handleNext() {
  */
 function handleUndo() {
     if (state.previousStates.length === 0) {
-        // 替换alert为popup弹窗
         if (typeof showPopup === 'function') {
             showPopup('没有可撤销的操作', 'warning');
         } else {
@@ -241,31 +285,30 @@ function handleUndo() {
         return;
     }
 
-    // 获取上一个状态
     const previousState = state.previousStates.pop();
-
-    // 恢复状态
     state.currentState = previousState.state;
     state.matrixData = previousState.matrixData;
 
-    // 根据状态执行相应的恢复操作
     switch (state.currentState) {
         case CONFIG.STATES.SELECT_DIMENSION:
             console.log('in select dimension state, undo');
             restoreOriginalGrid();
             enableGridInteraction();
-
             break;
 
         case CONFIG.STATES.INPUT_ELEMENTS:
             console.log('in input elements state, undo');
             restoreGridForInputElements();
-
             break;
 
-        case CONFIG.STATES.CONFIRM_DATA:
-            console.log('in confirm data state, undo');
-            // 保持当前确认状态
+        case CONFIG.STATES.DATA_VALIDATION:  // 数据校验状态撤销
+            console.log('in data validation state, undo');
+            restoreGridForInputElements();
+            break;
+
+        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 初等变换状态撤销
+            console.log('in elementary transformation state, undo');
+            restoreGridForInputElements();
             break;
     }
 
@@ -379,32 +422,32 @@ function restoreOriginalGrid() {
  * 恢复网格和输入框状态（用于撤销功能）
  */
 function restoreGridForInputElements() {
- /*   // 清空窗口内容
-    elements.windowDiv.innerHTML = '';
-
-    // 重置窗口样式
-    elements.windowDiv.classList.remove('dynamic');
-    elements.windowDiv.style.width = '400px';
-    elements.windowDiv.style.height = '400px';
-    elements.windowDiv.style.gridTemplateColumns = 'repeat(10, 40px)';
-    elements.windowDiv.style.gridTemplateRows = 'repeat(10, 40px)';
-
-    // 重新创建网格
-    createGrid();
-
-    // 根据matrixData恢复高亮显示
-    if (state.matrixData && state.matrixData.rows && state.matrixData.cols) {
-        const { rows, cols } = state.matrixData;
-        highlightCellsInRange(cols - 1, rows - 1);
-        updateCoordinatesDisplay(`${rows}×${cols}`);
-        state.lastSelectedDimension = `${rows}×${cols}`;
-    } else {
-        updateCoordinatesDisplay('0×0');
-        state.lastSelectedDimension = '0×0';
-    }
-
-    // 清空输入框状态
-    state.gridInputs = [];*/
+    /*   // 清空窗口内容
+       elements.windowDiv.innerHTML = '';
+   
+       // 重置窗口样式
+       elements.windowDiv.classList.remove('dynamic');
+       elements.windowDiv.style.width = '400px';
+       elements.windowDiv.style.height = '400px';
+       elements.windowDiv.style.gridTemplateColumns = 'repeat(10, 40px)';
+       elements.windowDiv.style.gridTemplateRows = 'repeat(10, 40px)';
+   
+       // 重新创建网格
+       createGrid();
+   
+       // 根据matrixData恢复高亮显示
+       if (state.matrixData && state.matrixData.rows && state.matrixData.cols) {
+           const { rows, cols } = state.matrixData;
+           highlightCellsInRange(cols - 1, rows - 1);
+           updateCoordinatesDisplay(`${rows}×${cols}`);
+           state.lastSelectedDimension = `${rows}×${cols}`;
+       } else {
+           updateCoordinatesDisplay('0×0');
+           state.lastSelectedDimension = '0×0';
+       }
+   
+       // 清空输入框状态
+       state.gridInputs = [];*/
 }
 
 /**
@@ -461,12 +504,12 @@ function clearAllHighlights() {
  */
 function highlightCellsInRange(targetX, targetY) {
     // 确保目标坐标在网格范围内
-    const maxX = Math.min(targetX, CONFIG.GRID_SIZE - 1);
+const maxX = Math.min(targetX, CONFIG.GRID_SIZE - 1);
     const maxY = Math.min(targetY, CONFIG.GRID_SIZE - 1);
     for (let x = 0; x <= targetX; x++) {
         for (let y = 0; y <= targetY; y++) {
             const cellIndex = y * CONFIG.GRID_SIZE + x;
-            if (state.gridCells[cellIndex]) {
+if (state.gridCells[cellIndex]) {
                 state.gridCells[cellIndex].classList.add('highlighted');
             }
         }
@@ -488,8 +531,8 @@ function updateCoordinatesDisplay(dimensionText) {
 }
 
 // ==================== 底层工具函数 ====================
-/**
- * 填充空输入框并验证
+/**  
+* 填充空输入框并验证
  */
 function fillEmptyInputsAndValidate() {
     const inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
@@ -498,7 +541,7 @@ function fillEmptyInputsAndValidate() {
     inputs.forEach(input => {
         if (input.value.trim() === '') {
             input.value = '0';
-        }
+}
     });
 
     // 验证所有输入框是否已填写（现在应该都填了）
@@ -549,7 +592,6 @@ function removeNonHighlightedCells() {
     // 更新网格单元格数组
     state.gridCells = Array.from(elements.windowDiv.querySelectorAll('.grid-cell'));
 }
-
 /**
  * 将高亮单元格转换为输入框
  */
@@ -615,9 +657,9 @@ function collectMatrixData() {
  * 显示矩阵数据预览
  */
 function showMatrixPreview() {
- // 格式化显示矩阵数据
+    // 格式化显示矩阵数据
     console.log(`维度: ${state.matrixData.rows}×${state.matrixData.cols}`);
-    
+
     // 显示矩阵内容（不显示数组长度）
     console.log('矩阵内容:');
     state.matrixData.elements.forEach((row, rowIndex) => {
@@ -679,3 +721,213 @@ function disableInputInteraction() {
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', init);
+
+
+/**
+ * 数据校验函数
+ */
+function validateMatrixData() {
+    const inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
+    let isValid = true;
+    let errorMessage = '';
+
+    // 正则表达式匹配：整数、分数、未知数（字母）
+    const validPattern = /^([+-]?\d+(?:\/\d+)?|[a-zA-Z]+)$/;
+
+    for (let i = 0; i < inputs.length; i++) {
+        const input = inputs[i];
+        const value = input.value.trim();
+
+        // 跳过空值（已经在fillEmptyInputsAndValidate中处理为'0'）
+        if (value === '' || value === '0') {
+            continue;
+        }
+
+        // 检查是否为小数，如果是则使用math.js转换为分数
+        if (/^-?\d+\.\d+$/.test(value)) {
+            try {
+                const decimalValue = parseFloat(value);
+                // 使用math.js的fraction函数将小数转换为分数
+                const fraction = math.fraction(decimalValue);
+                input.value = math.format(fraction, { fraction: 'ratio' });
+                continue;
+            } catch (error) {
+                isValid = false;
+                errorMessage = `第${Math.floor(i / state.matrixData.cols) + 1}行第${(i % state.matrixData.cols) + 1}列小数转换失败：${value}`;
+                break;
+            }
+        }
+
+        // 验证未知数（使用正则表达式验证字母格式）
+        if (/^[a-zA-Z]+$/.test(value)) {
+            // 使用正则表达式验证未知数格式（只允许字母）
+            if (!/^[a-zA-Z]+$/.test(value)) {
+                isValid = false;
+                errorMessage = `第${Math.floor(i / state.matrixData.cols) + 1}行第${(i % state.matrixData.cols) + 1}列无效的未知数名称：${value}（只允许字母）`;
+                break;
+            }
+            continue;
+        }
+
+        // 验证分数格式
+        if (value.includes('/')) {
+            const parts = value.split('/');
+            if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1]) || parts[1] === '0') {
+                isValid = false;
+                errorMessage = `第${Math.floor(i / state.matrixData.cols) + 1}行第${(i % state.matrixData.cols) + 1}列无效的分数格式：${value}`;
+                break;
+            }
+            continue;
+        }
+
+        // 验证整数格式
+        if (!/^[+-]?\d+$/.test(value)) {
+            isValid = false;
+            errorMessage = `第${Math.floor(i / state.matrixData.cols) + 1}行第${(i % state.matrixData.cols) + 1}列包含无效字符：${value}`;
+            break;
+        }
+    }
+
+    return {
+        isValid: isValid,
+        message: errorMessage
+    };
+}
+
+/**
+ * 显示初等变换UI
+ */
+function showElementaryTransformationUI() {
+    // 移除hidden类，显示初等变换界面
+    const elementaryTransformationDiv = document.querySelector('.hidden');
+    if (elementaryTransformationDiv) {
+        elementaryTransformationDiv.classList.remove('hidden');
+        
+        // 确保初等变换界面也继承body的居中样式
+        elementaryTransformationDiv.style.display = 'flex';
+        elementaryTransformationDiv.style.flexDirection = 'column';
+        elementaryTransformationDiv.style.alignItems = 'center';
+        elementaryTransformationDiv.style.width = '100%';
+        elementaryTransformationDiv.style.maxWidth = '1000px';
+        elementaryTransformationDiv.style.margin = '0 auto';
+    }
+
+    // 为输入框添加行列索引按钮
+    addRowColumnIndices();
+
+    // 重新组织布局，避免元素重叠
+    reorganizeLayoutForElementaryTransformation();
+}
+
+/**
+ * 重新组织布局以适应初等变换状态
+ */
+function reorganizeLayoutForElementaryTransformation() {
+    // 获取所有需要重新排列的元素
+    const inputMatrixDiv = document.getElementById('InputMatrix');
+    const assistGroup = document.querySelector('.assist-group');
+    const operatorButtons = document.querySelectorAll('.operator-buttons');
+    
+    // 清空InputMatrix容器
+    inputMatrixDiv.innerHTML = '';
+    
+    // 创建新的布局容器
+    const layoutContainer = document.createElement('div');
+    layoutContainer.style.display = 'flex';
+    layoutContainer.style.flexDirection = 'column';
+    layoutContainer.style.alignItems = 'center';
+    layoutContainer.style.gap = '20px';
+    layoutContainer.style.width = '100%';
+    
+    // 添加矩阵表格（包含行列索引）
+    const matrixTable = elements.windowDiv.querySelector('table');
+    if (matrixTable) {
+        const matrixContainer = document.createElement('div');
+        matrixContainer.style.textAlign = 'center';
+        matrixContainer.appendChild(matrixTable);
+        
+        // 添加矩阵维度信息
+        const coordinates = document.createElement('p');
+        coordinates.id = 'coordinates';
+        coordinates.textContent = `矩阵维度: ${state.matrixData.rows}×${state.matrixData.cols}`;
+        matrixContainer.appendChild(coordinates);
+        
+        layoutContainer.appendChild(matrixContainer);
+    }
+    
+    // 添加辅助按钮组
+    if (assistGroup) {
+        layoutContainer.appendChild(assistGroup);
+    }
+    
+    // 添加操作按钮组
+    operatorButtons.forEach(buttonGroup => {
+        layoutContainer.appendChild(buttonGroup);
+    });
+    
+    // 将新布局添加到InputMatrix容器
+    inputMatrixDiv.appendChild(layoutContainer);
+}
+
+/**
+ * 添加行列索引按钮
+ */
+function addRowColumnIndices() {
+    const { rows, cols } = state.matrixData;
+    const inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
+
+    // 创建表格容器
+    const table = document.createElement('table');
+    table.style.borderCollapse = 'collapse';
+    table.style.margin = '20px auto';
+
+    // 创建数据行（行索引放在行末尾）
+    for (let row = 0; row < rows; row++) {
+        const tr = document.createElement('tr');
+
+        // 添加数据单元格（先添加数据，再添加行索引）
+        for (let col = 0; col < cols; col++) {
+            const td = document.createElement('td');
+            const inputIndex = row * cols + col;
+            if (inputs[inputIndex]) {
+                td.appendChild(inputs[inputIndex]);
+            }
+            tr.appendChild(td);
+        }
+
+        // 添加行索引按钮（放在行末尾）
+        const rowIndexTd = document.createElement('td');
+        rowIndexTd.className = 'row-label';
+        const rowButton = document.createElement('button');
+        rowButton.textContent = `r${row + 1}`;
+        rowButton.id = `button_add_r${row + 1}`;
+        rowIndexTd.appendChild(rowButton);
+        tr.appendChild(rowIndexTd);
+
+        table.appendChild(tr);
+    }
+
+    // 创建列索引行（放在表格下方）
+    const colTr = document.createElement('tr');
+    
+    // 添加列索引按钮（直接与数据列对齐）
+    for (let col = 0; col < cols; col++) {
+        const colTd = document.createElement('td');
+        colTd.className = 'col-label';
+        const colButton = document.createElement('button');
+        colButton.textContent = `c${col + 1}`;
+        colButton.id = `button_add_c${col + 1}`;
+        colTd.appendChild(colButton);
+        colTr.appendChild(colTd);
+    }
+    
+    // 添加空单元格（对应行索引列的位置）
+    const emptyTd = document.createElement('td');
+    colTr.appendChild(emptyTd);
+
+    table.appendChild(colTr);
+
+    // 替换原来的输入框布局
+    elements.windowDiv.innerHTML = '';
+    elements.windowDiv.appendChild(table);
+}

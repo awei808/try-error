@@ -80,6 +80,10 @@ h1 {
     margin: 15px 0;
 }
 
+.hidden {
+    /* 可以根据需要添加样式，或者保持为空 */
+    display: none;
+}
 /*#popup {
     position: fixed;
     top: 50%;
@@ -103,8 +107,3 @@ h1 {
     box-sizing: border-box;
     overflow: auto;
 }*/
-
-
-.hidden_未实装 {
-    /* 可以根据需要添加样式，或者保持为空 */
-}
