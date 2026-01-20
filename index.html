@@ -34,24 +34,16 @@
         <div class="operator-buttons">
             <div class="input-group">
                 <input type="text" id="transform-target" placeholder="目标行/列 (如 r1, c2)" class="t-i-group">
-                <select id="transform-operator" class="t-i-group">
-                    <option value="">选择操作</option>
-                    <option value="+">+</option>
-                    <option value="-">-</option>
-                    <option value="*">×</option>
-                    <option value="↔">↔</option>
-                </select>
-                <input type="text" id="transform-param" placeholder="参数 (如 r2)" class="t-i-group">
-                <input type="text" id="transform-coefficient" placeholder="系数">
+                <div id="arithmetic-symbols">
+                    <button id="button-change">↔</button>
+                    <button id="button-add">+</button>
+                    <button id="button-sub">−</button>
+                    <button id="button-mul">×</button>
+                </div>
+                <input type="text" id="transform-coefficient" placeholder="系数">    
+                <input type="text" id="transform-param" placeholder="参数行/列 (如 r1，c2)" class="t-i-group">
                 <button id="button-translate">执行初等变换</button>
             </div>
-        </div>
-        <div class="operator-buttons">
-            <p>快捷符号</p>
-            <button id="button-change">↔</button>
-            <button id="button-add">+</button>
-            <button id="button-sub">−</button>
-            <button id="button-mul">×</button>
         </div>
     </div>
 
@@ -60,7 +52,7 @@
 
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
     <script src="./script/all.js"></script>
     <script src="./script/popup.js"></script>
 </body>

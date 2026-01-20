@@ -25,13 +25,15 @@ td:hover {
 }
 
 /* 行列标识样式 */
-.row-label, .col-label {
+.row-label,
+.col-label {
     font-weight: bold;
     background-color: #e9ecef;
     color: var(--primary-color);
 }
 
-.row-label button, .col-label button {
+.row-label button,
+.col-label button {
     background: transparent;
     color: var(--primary-color);
     padding: 4px 8px;
@@ -39,7 +41,8 @@ td:hover {
     border: 1px dashed transparent;
 }
 
-.row-label button:hover, .col-label button:hover {
+.row-label button:hover,
+.col-label button:hover {
     background-color: rgba(74, 111, 165, 0.1);
     border-color: var(--primary-color);
     transform: none;
@@ -63,7 +66,7 @@ input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
 }
 
-.t_i_group {
+.t-i-group {
     height: 42px;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
@@ -73,17 +76,18 @@ input[type="text"]:focus {
     transition: var(--transition);
 }
 
-.t_i_group:focus {
+.t-i-group:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
 }
 
-#transform_target, #transform_param {
+#transform-target,
+#transform-param {
     width: 140px;
 }
 
-#transform_operator {
+#transform-operator {
     padding: 10px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -91,7 +95,7 @@ input[type="text"]:focus {
     transition: var(--transition);
 }
 
-#transform_operator:focus {
+#transform-operator:focus {
     outline: none;
     border-color: var(--primary-color);
 }
@@ -108,7 +112,12 @@ button {
     font-size: 15px;
     transition: var(--transition);
     font-weight: 500;
+    width: auto;
+    /* 保持原有宽度 */
+    min-width: 40px;
+    /* 设置最小宽度保持一致性 */
 }
+
 
 button:hover {
     background-color: var(--secondary-color);
@@ -120,41 +129,43 @@ button:active {
     transform: translateY(0);
 }
 
-button#button_compete {
+button#button-compete {
     background-color: #28a745;
 }
 
-button#button_compete:hover {
+button#button-compete:hover {
     background-color: #218838;
 }
 
-button#undo, button#redo {
+button#undo,
+button#redo {
     background-color: #6c757d;
 }
 
-button#undo:hover, button#redo:hover {
+button#undo:hover,
+button#redo:hover {
     background-color: #5a6268;
 }
 
-button#button_reset {
+button#button-reset {
     background-color: #dc3545;
 }
 
-button#button_reset:hover {
+button#button-reset:hover {
     background-color: #c82333;
 }
 
 /* 按钮组样式 */
-.operator_buttons {
+.operator-buttons {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 5px;
     margin: 15px 0;
     flex-wrap: wrap;
     align-items: center;
 }
 
-.input_group {
+.input-group {
     display: flex;
     gap: 10px;
     align-items: center;
@@ -164,21 +175,55 @@ button#button_reset:hover {
     margin-bottom: 10px;
 }
 
-.shortcut_buttons {
+.shortcut-buttons {
     display: flex;
     gap: 8px;
     margin: 10px 0;
 }
 
-.shortcut_buttons button {
+.shortcut-buttons button {
     padding: 8px 12px;
     font-size: 16px;
 }
 
-.header_buttons {
+.header-buttons {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
     flex-wrap: wrap;
     justify-content: center;
 }
+/* 隐藏类样式 - 保持内部元素横向排列 */
+.hidden {
+    display: none;
+}
+
+#arithmetic-symbols {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}
+
+#arithmetic-symbols button {
+    padding: 4px 12px;
+    font-size: 16px;
+}
+
+/* 辅助按钮组样式 - 竖向排列 */
+.assist-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 20px;
+    width: 200px;
+}
+
+.assist-group button {
+    display: block;
+    /* 确保竖向排列 */
+    width: 100%;
+    /* 占满容器宽度 */
+    margin: 0 0 10px 0;
+    /* 只设置底部边距 */
+}
+
