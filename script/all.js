@@ -265,10 +265,11 @@ function handleNext() {
             handleDataValidation();
             break;
 
-        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 新增初等变换状态
+        /*case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 新增初等变换状态
             console.log('in elementary transformation state, next');
             handleElementaryTransformation();
             break;
+            */
     }
 }
 
