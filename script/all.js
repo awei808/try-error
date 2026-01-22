@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', init);
 function updateUIForCurrentState() {
     switch (state.currentState) {
         case CONFIG.STATES.SELECT_DIMENSION:
-            console.log('to select dimension');
+            console.log('to 维度选择');
             elements.tipDiv.textContent = '点击网格选择矩阵大小';
             elements.nextButton.textContent = '下一步';
             elements.undoButton.disabled = true;
@@ -60,7 +60,7 @@ function updateUIForCurrentState() {
             break;
 
         case CONFIG.STATES.INPUT_ELEMENTS:
-            console.log('to input elements');
+            console.log('to 输入元素');
             console.log(`矩阵维度: ${state.lastSelectedDimension}`);
 
             elements.tipDiv.textContent = '请在输入框中输入矩阵元素（非‘0’），点击下一步后，空白处将用‘0’填充';
@@ -73,7 +73,7 @@ function updateUIForCurrentState() {
 
 
         case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 新增初等变换状态
-            console.log('to elementary transformation');
+            console.log('to 初等变换');
             console.table(`矩阵数据: ${JSON.stringify(state.matrixData.elements)}`);
             elements.tipDiv.textContent = '可以进行初等变换操作';
             elements.nextButton.textContent = '完成';
@@ -146,7 +146,6 @@ function handleElementInput() {
 
     // 收集矩阵数据
     collectMatrixData();
-
     // 切换到数据校验状态
     state.currentState = CONFIG.STATES.DATA_VALIDATION;
     updateUIForCurrentState();
@@ -194,7 +193,6 @@ function handleDataValidation() {
     // 6. 更新下一步按钮状态
     elements.nextButton.disabled = true;
     elements.nextButton.style.opacity = '0.5';
-
     // 7. 更新坐标显示和全局UI
     updateCoordinatesDisplay(`${state.matrixData.rows}×${state.matrixData.cols}`);
     updateUIForCurrentState();
@@ -258,12 +256,12 @@ function Next() {
 
     switch (state.currentState) {
         case CONFIG.STATES.SELECT_DIMENSION:
-            console.log('in select dimension state, next');
+            console.log('维度选择下, next');
             handleDimensionSelection();
             break;
 
         case CONFIG.STATES.INPUT_ELEMENTS:
-            console.log('in input elements state, next');
+            console.log('输入元素下, next');
             handleDataValidation();  // 使用新的处理函数
             break;
 
@@ -279,7 +277,7 @@ function Next() {
  * 处理撤销按钮点击
  */
 function Undo() {
-    if (state.previousStates.length === 0) {
+    if (state.previousStates.length === 0) {//对应无状态，按理说不会出现这种情况
         if (typeof showPopup === 'function') {
             showPopup('没有可撤销的操作', 'warning');
         } else {
@@ -299,20 +297,20 @@ function Undo() {
     }
     // 2. 恢复前一个状态
     switch (state.currentState) {
-        case CONFIG.STATES.SELECT_DIMENSION:
-            console.log('in select dimension state, undo');
+        case CONFIG.STATES.SELECT_DIMENSION://实际上按钮被禁用，正常情况不会执行到这段代码
+            console.log('维度选择下, undo');
             restoreOriginalGrid();
             enableGridInteraction();
             break;
 
         case CONFIG.STATES.INPUT_ELEMENTS:
-            console.log('in input elements state, undo');
-            restoreGridForInputElements();
+            console.log('输入元素下, undo');
+            restoreOriginalGrid();
             break;
 
 
-        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:  // 初等变换状态撤销
-            console.log('in elementary transformation state, undo');
+        case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:
+            console.log('初等变换下, undo');
             restoreGridForInputElements();
             break;
     }
@@ -391,7 +389,7 @@ function createGrid() {
     const fragment = document.createDocumentFragment();
 
     for (let y = 0; y < CONFIG.GRID_SIZE; y++) {
-for (let x = 0; x < CONFIG.GRID_SIZE; x++) {
+        for (let x = 0; x < CONFIG.GRID_SIZE; x++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.x = x;
@@ -430,28 +428,55 @@ function restoreOriginalGrid() {
 }
 
 /**
- * 恢复输入元素状态的网格（补全数据恢复逻辑）
- * @param {Object} prevMatrixData 前序矩阵数据
+ * 恢复输入元素状态的网格
+ * 根据全局变量matrixData来恢复网格和输入框，并填上输入框的值
  */
-function restoreGridForInputElements(prevMatrixData) {
-    // 清空窗口
+function restoreGridForInputElements() {
+    // 1. 清空窗口内容，去掉整个表格/网格
     elements.windowDiv.innerHTML = '';
+
+    // 2. 重置状态数组
     state.gridInputs = [];
     state.gridCells = [];
 
-    if (prevMatrixData) {
-        // 重建输入框网格
-        createInputGrid(prevMatrixData.rows, prevMatrixData.cols);
-        // 恢复输入框的值（修复表格数据丢失bug）
-        state.gridInputs.forEach((input, index) => {
-            const row = Math.floor(index / prevMatrixData.cols);
-            const col = index % prevMatrixData.cols;
-            input.value = prevMatrixData.elements[row][col] || '';
-        });
-        // 恢复坐标显示
-        updateCoordinatesDisplay(`${prevMatrixData.rows}×${prevMatrixData.cols}`);
+    // 3. 移除可能的动态样式类
+    elements.windowDiv.classList.remove('dynamic');
+
+    // 4. 检查全局matrixData是否存在
+    if (state.matrixData) {
+        const { rows, cols, elements: matrixElements } = state.matrixData;
+
+        // 5. 设置网格布局样式
+        elements.windowDiv.classList.add('dynamic');
+        elements.windowDiv.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+        elements.windowDiv.style.gridTemplateRows = `repeat(${rows}, 40px)`;
+        elements.windowDiv.style.width = `${cols * 80}px`;
+        elements.windowDiv.style.height = `${rows * 40}px`;
+
+        // 6. 重建输入框并填充值
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'grid-cell-input';
+
+                // 设置统一的dataset属性
+                input.dataset.x = col;
+                input.dataset.y = row;
+
+                // 填充输入框的值
+                input.value = matrixElements[row][col] || '';
+
+                // 添加到窗口和状态数组
+                elements.windowDiv.appendChild(input);
+                state.gridInputs.push(input);
+            }
+        }
+
+        // 7. 更新坐标显示
+        updateCoordinatesDisplay(`${rows}×${cols}`);
     } else {
-        // 无数据时恢复初始网格
+        // 8. 无数据时恢复初始网格
         createGrid();
         updateCoordinatesDisplay(CONFIG.INITIAL_DIMENSION);
     }
@@ -499,10 +524,12 @@ function createInputGrid(rows, cols) {
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'grid-cell-input';
-            input.dataset.row = i;
-            input.dataset.col = j;
+            // 统一使用x/y命名，与其他函数保持一致
+            input.dataset.x = j;  // x对应列
+            input.dataset.y = i;  // y对应行
             elements.windowDiv.appendChild(input);
             state.gridInputs.push(input);
+
         }
     }
 }
@@ -606,7 +633,7 @@ function removeNonHighlightedCells() {
 function collectMatrixData() {
     const inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
 
-inputs.forEach(input => {
+    inputs.forEach(input => {
         const x = parseInt(input.dataset.x);
         const y = parseInt(input.dataset.y);
         state.matrixData.elements[y][x] = input.value.trim();
@@ -789,7 +816,6 @@ function fillEmptyInputsAndValidate() {
 function calculateMatrixDimensions(highlightedCells) {
     let maxX = 0;
     let maxY = 0;
-
     highlightedCells.forEach(cell => {
         const x = parseInt(cell.dataset.x);
         const y = parseInt(cell.dataset.y);
@@ -846,51 +872,27 @@ function hideElementaryTransformationUI() {
 /**
  * 重新组织布局以适应初等变换状态
  */
+
 function reorganizeLayoutForElementaryTransformation() {
-    // 获取所有需要重新排列的元素
-    const inputMatrixDiv = document.getElementById('InputMatrix');
-    const assistGroup = document.querySelector('.assist-group');
+    // 不再清空inputMatrixDiv，保持现有结构
+
+    // 获取所有需要操作的元素
     const operatorButtons = document.querySelectorAll('.operator-buttons');
 
-    // 清空InputMatrix容器
-    inputMatrixDiv.innerHTML = '';
-
-    // 创建新的布局容器
-    const layoutContainer = document.createElement('div');
-    layoutContainer.style.display = 'flex';
-    layoutContainer.style.flexDirection = 'column';
-    layoutContainer.style.alignItems = 'center';
-    layoutContainer.style.gap = '20px';
-    layoutContainer.style.width = '100%';
-
-    // 添加矩阵表格（包含行列索引）
-    const matrixTable = elements.windowDiv.querySelector('table');
-    if (matrixTable) {
-        const matrixContainer = document.createElement('div');
-        matrixContainer.style.textAlign = 'center';
-        matrixContainer.appendChild(matrixTable);
-
-        // 添加矩阵维度信息
-        const coordinates = document.createElement('p');
-        coordinates.id = 'coordinates';
-        coordinates.textContent = `矩阵维度: ${state.matrixData.rows}×${state.matrixData.cols}`;
-        matrixContainer.appendChild(coordinates);
-
-        layoutContainer.appendChild(matrixContainer);
-    }
-
-    // 添加辅助按钮组
-    if (assistGroup) {
-        layoutContainer.appendChild(assistGroup);
-    }
-
-    // 添加操作按钮组
+    // 确保初等变换按钮组可见
     operatorButtons.forEach(buttonGroup => {
-        layoutContainer.appendChild(buttonGroup);
+        buttonGroup.classList.remove('hidden');
     });
 
-    // 将新布局添加到InputMatrix容器
-    inputMatrixDiv.appendChild(layoutContainer);
+    // 不需要移动矩阵表格，保持其在windowDiv中的原始位置
+
+    // 确保坐标显示正确更新（但不改变其位置）
+    const coordinates = document.getElementById('coordinates');
+    if (coordinates && state.matrixData) {
+        coordinates.textContent = `矩阵维度: ${state.matrixData.rows}×${state.matrixData.cols}`;
+    }
+
+    // 不需要创建新的布局容器，保持现有DOM结构
 }
 
 /**
@@ -915,14 +917,14 @@ function addRowColumnIndices() {
             // 直接显示矩阵值，不再使用输入框
             const cellValue = matrixElements[row][col] || '0'; // 默认值为0
             td.textContent = cellValue;
-            
+
             // 添加样式类，保持与原输入框相似的外观
             td.className = 'grid-cell-value';
             td.style.border = '1px solid #ccc';
             td.style.padding = '8px 12px';
             td.style.textAlign = 'center';
             td.style.backgroundColor = '#f9f9f9';
-            
+
             tr.appendChild(td);
         }
 
@@ -1014,7 +1016,6 @@ function updateCoordinatesDisplay(dimensionText) {
     elements.coordinatesDiv.textContent = `矩阵维度: ${dimensionText}`;
 }
 
-// ==================== 底层工具函数 ====================
 
 // ==================== 底层工具函数 ====================
 /**
@@ -1035,7 +1036,7 @@ function resizeWindow(dimensions) {
     const inputHeight = 50; // 输入框高度
     const gap = 0;          // 间距
 
-const newWidth = dimensions.cols * (inputWidth + gap);
+    const newWidth = dimensions.cols * (inputWidth + gap);
     const newHeight = dimensions.rows * (inputHeight + gap);
 
     // 添加动态调整类

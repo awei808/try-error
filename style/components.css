@@ -193,6 +193,7 @@ button#button-reset:hover {
     flex-wrap: wrap;
     justify-content: center;
 }
+
 /* 隐藏类样式 - 保持内部元素横向排列 */
 .hidden {
     display: none;
@@ -226,4 +227,3 @@ button#button-reset:hover {
     margin: 0 0 10px 0;
     /* 只设置底部边距 */
 }
-

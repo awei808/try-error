@@ -15,15 +15,16 @@
 <body>
     <header>
         <button id="ButtonInputMartix">录入矩阵</button>
-        
+
     </header>
-    
+
     <!--
     <button id="debugError">测试报错error弹窗</button>
     <button id="debugSuccess">测试成功success弹窗</button>
     <button id="debugWarning">测试警告warning弹窗</button>
     -->
     <div id="InputMatrix">
+        <h1 id="tip"></h1>
         <div>
             <div id="window"></div>
             <p id="coordinates">矩阵维度: 0×0</p>
@@ -31,25 +32,24 @@
         <div class="assist-group">
             <button id="undoButton" class="action-button">上一步</button>
             <button id="nextButton" class="action-button">下一步</button>
-            <p id="tip"></p>
         </div>
     </div>
-    
-        <div class="operator-buttons hidden">
-            <div class="input-group">
-                <input type="text" id="transform-target" placeholder="目标行/列 (如 r1, c2)" class="t-i-group">
-                <div id="arithmetic-symbols">
-                    <button id="button-change">↔</button>
-                    <button id="button-add">+</button>
-                    <button id="button-sub">−</button>
-                    <button id="button-mul">×</button>
-                </div>
-                <input type="text" id="transform-coefficient" placeholder="系数">    
-                <input type="text" id="transform-param" placeholder="参数行/列 (如 r1，c2)" class="t-i-group">
-                <button id="button-translate">执行初等变换</button>
+
+    <div class="operator-buttons hidden">
+        <div class="input-group">
+            <input type="text" id="transform-target" placeholder="目标行/列 (如 r1, c2)" class="t-i-group">
+            <div id="arithmetic-symbols">
+                <button id="button-change">↔</button>
+                <button id="button-add">+</button>
+                <button id="button-sub">−</button>
+                <button id="button-mul">×</button>
             </div>
+            <input type="text" id="transform-coefficient" placeholder="系数">
+            <input type="text" id="transform-param" placeholder="参数行/列 (如 r1，c2)" class="t-i-group">
+            <button id="button-translate">执行初等变换</button>
         </div>
-    
+    </div>
+
 
     <!-- 弹窗 -->
     <div id="popupBox" class="popup-box-container">

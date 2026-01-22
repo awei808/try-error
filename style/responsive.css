@@ -59,10 +59,7 @@
         margin-bottom: 15px;
     }
     
-    #tip {
-        font-size: 14px;
-        text-align: center;
-    }
+
 }
 
 /* 手机设备适配 (480px - 768px) */
@@ -120,10 +117,7 @@
         margin-bottom: 12px;
     }
     
-    #tip {
-        font-size: 13px;
-        line-height: 1.4;
-    }
+
 }
 
 /* 小屏手机适配 (320px - 480px) */
@@ -242,10 +236,7 @@
         margin-bottom: 8px;
     }
     
-    #tip {
-        font-size: 11px;
-        line-height: 1.2;
-    }
+
 }
 
 /* 横屏模式适配 */
