@@ -658,8 +658,7 @@ function validateMatrixData(useDOM = false) {
     const { rows, cols } = state.matrixData;
     let elements = [];
     let inputs = [];
-
-    // 选择数据来源
+// 选择数据来源
     if (useDOM) {
         // 从DOM中读取数据
         inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
@@ -897,6 +896,7 @@ function reorganizeLayoutForElementaryTransformation() {
 
 /**
  * 添加行列索引按钮
+ * 修改后：调整windowDiv大小以适应表格，避免重叠
  */
 function addRowColumnIndices() {
     // 修改：将解构的elements重命名为matrixElements，避免与全局elements对象冲突
@@ -905,7 +905,7 @@ function addRowColumnIndices() {
     // 创建表格容器
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
-    table.style.margin = '20px auto';
+    table.style.margin = '0px auto';
 
     // 创建数据行（行索引放在行末尾）
     for (let row = 0; row < rows; row++) {
@@ -960,9 +960,30 @@ function addRowColumnIndices() {
 
     table.appendChild(colTr);
 
-    // 替换原来的输入框布局 - 现在可以正确访问全局的elements对象
+    // 替换原来的输入框布局
     elements.windowDiv.innerHTML = '';
     elements.windowDiv.appendChild(table);
+    
+    // 计算并调整windowDiv大小以适应表格
+    // 使用setTimeout确保表格已添加到DOM中并完成渲染
+    setTimeout(() => {
+        // 获取表格的实际宽度和高度
+        const windowWidth = table.offsetWidth;
+        const windowHeight = table.offsetHeight;
+        
+        
+        // 调整windowDiv的大小
+        elements.windowDiv.style.width = `${windowWidth}px`;
+        elements.windowDiv.style.height = `${windowHeight}px`;
+        
+        // 重置grid布局，因为我们不再使用它
+        elements.windowDiv.style.gridTemplateColumns = 'none';
+        elements.windowDiv.style.gridTemplateRows = 'none';
+        
+        // 确保windowDiv能正确显示表格
+        elements.windowDiv.style.overflow = 'visible';
+        elements.windowDiv.style.display = 'block';
+    }, 0);
 }
 
 /**
