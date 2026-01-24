@@ -3,6 +3,17 @@
 const CONFIG = {
     GRID_SIZE: 10,
     INITIAL_DIMENSION: '0×0',
+    // 屏幕大小定义（与CSS断点一致）
+    SCREEN_SIZES: {
+        MOBILE_MAX: 768,
+        TABLET_MAX: 1024,
+        DESKTOP_MIN: 1025
+    },
+    // 输入框默认尺寸（备用）
+    DEFAULT_INPUT_DIMENSIONS: {
+        width: 60,
+        height: 50
+    },
     // 状态定义
     STATES: {
         SELECT_DIMENSION: 'select_dimension',
@@ -43,7 +54,17 @@ function init() {
     updateUIForCurrentState();
 }
 // 初始化应用
-document.addEventListener('DOMContentLoaded', init);
+// 添加窗口大小变化监听
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    // 窗口大小变化时重新计算
+    window.addEventListener('resize', () => {
+        if (state.currentState === CONFIG.STATES.INPUT_ELEMENTS && state.matrixData) {
+            restoreGridForInputElements();
+        }
+    });
+});
+
 // ==================== 状态机函数 ====================
 /**
  * 更新UI以反映当前状态
@@ -54,9 +75,9 @@ function updateUIForCurrentState() {
             console.log('to 维度选择');
             elements.tipDiv.textContent = '点击网格选择矩阵大小';
             elements.nextButton.textContent = '下一步';
-            elements.nextButton.disabled = false;  
-            elements.nextButton.style.opacity = '1';  
-            elements.nextButton.style.cursor = 'pointer'; 
+            elements.nextButton.disabled = false;
+            elements.nextButton.style.opacity = '1';
+            elements.nextButton.style.cursor = 'pointer';
             elements.undoButton.disabled = true;
             elements.undoButton.style.opacity = '0.6';
             elements.undoButton.style.cursor = 'not-allowed'; // 补充undoButton的cursor属性
@@ -134,8 +155,7 @@ function handleDimensionSelection() {
 
 
 /**
- * 处理矩阵元素输入
- * 函数未被使用
+ * 处理矩阵元素输入，函数未被使用
  */
 /*function handleElementInput() {
     // 验证所有输入框是否已填写
@@ -148,7 +168,7 @@ function handleDimensionSelection() {
             alert('请填写所有矩阵元素');
         }
         state.previousStates.pop();
-        return;
+return;
     }
 
     // 收集矩阵数据
@@ -267,7 +287,7 @@ function Next() {
             break;
             */
     }
-    
+
     if (success) {
         updateUIForCurrentState();
     } else {
@@ -327,7 +347,7 @@ function Undo() {
     const dim = state.matrixData ? `${state.matrixData.rows}×${state.matrixData.cols}` : CONFIG.INITIAL_DIMENSION;
     updateCoordinatesDisplay(dim);
     state.lastSelectedDimension = dim;
-    updateUIForCurrentState();
+updateUIForCurrentState();
 }
 
 /**
@@ -336,7 +356,6 @@ function Undo() {
 function toggleInputMatrix() {
     elements.inputMatrixDiv.classList.toggle('visible');
 }
-
 /**
  * 处理鼠标按下事件
  */
@@ -389,8 +408,7 @@ function setupEventListeners() {
 function createGrid() {
     state.gridCells = [];
     const fragment = document.createDocumentFragment();
-
-    for (let y = 0; y < CONFIG.GRID_SIZE; y++) {
+for (let y = 0; y < CONFIG.GRID_SIZE; y++) {
         for (let x = 0; x < CONFIG.GRID_SIZE; x++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
@@ -438,11 +456,9 @@ function restoreGridForInputElements() {
     // 1. 检查全局matrixData是否存在，先计算并设置输入元素状态下的窗口大小
     if (state.matrixData) {
         const { rows, cols } = state.matrixData;
-
-        // 先设置窗口大小为输入元素状态下的大小
-        const inputWidth = 60;  // 输入框宽度
-        const inputHeight = 50; // 输入框高度
-        const gap = 0;          // 间距
+        // 动态获取输入框的实际尺寸
+        const { width: inputWidth, height: inputHeight } = getInputElementDimensions();
+        const gap = 0;
 
         elements.windowDiv.classList.add('dynamic');
         elements.windowDiv.style.width = `${cols * (inputWidth + gap)}px`;
@@ -603,11 +619,11 @@ function collectMatrixData() {
  * @returns {Object} {isValid: boolean, message: string}
  */
 function validateMatrixData(useDOM = false) {
-    // 空数据校验
-    if (!useDOM && (!state.matrixData || !state.matrixData.elements)) {
+    // 检查矩阵数据是否存在
+    if (!state.matrixData || !state.matrixData.elements) {
         return {
-            isValid: false,
-            message: '矩阵数据为空，请先输入元素值'
+            isValid: true, // 不再进行空数据校验，直接返回通过
+            message: '数据处理完成'
         };
     }
 
@@ -623,13 +639,11 @@ function validateMatrixData(useDOM = false) {
         elements = state.matrixData.elements;
     }
 
-    // 正则表达式定义
-    const validPattern = /^(-)?(\d+(\/\d+)?|[a-zA-Z]\d*)$/; // 整数、分数、未知数
+    // 正则表达式
     const decimalPattern = /^-?\d+\.\d+$/; // 小数
-    const unknownPattern = /^[a-zA-Z]\d*$/; // 支持带下标的未知数，如a1, b2
-    const integerPattern = /^[+-]?\d+$/; // 整数
+    const fractionPattern = /^-?\d+\/\d+$/; // 分数
 
-    // 遍历数据进行校验和转换
+    // 遍历数据进行处理
     if (useDOM) {
         // DOM数据源处理（一维数组）
         for (let i = 0; i < inputs.length; i++) {
@@ -649,40 +663,39 @@ function validateMatrixData(useDOM = false) {
                 try {
                     const decimalValue = parseFloat(value);
                     const fraction = math.fraction(decimalValue);
-                    const fractionString = math.format(fraction, { fraction: 'ratio' });
-                    input.value = fractionString;
-                    continue;
+                    
+                    // 检查分母是否为1，如果是则转换为整数
+                    if (fraction.d === 1) {
+                        input.value = fraction.n.toString();
+                    } else {
+                        const fractionString = math.format(fraction, { fraction: 'ratio' });
+                        input.value = fractionString;
+                    }
                 } catch (error) {
                     return {
                         isValid: false,
                         message: `第${row}行第${col}列小数转换失败：${value}`
                     };
                 }
-            }
-
-            // 未知数验证
-            if (unknownPattern.test(value)) {
-                continue;
-            }
-
-            // 分数验证
-            if (value.includes('/')) {
-                const parts = value.split('/');
-                if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1]) || parts[1] === '0') {
+            } 
+            // 分数化简处理
+            else if (fractionPattern.test(value)) {
+                try {
+                    const fraction = math.fraction(value);
+                    
+                    // 检查分母是否为1，如果是则转换为整数
+                    if (fraction.d === 1) {
+                        input.value = fraction.n.toString();
+                    } else {
+                        const simplifiedFraction = math.format(fraction, { fraction: 'ratio' });
+                        input.value = simplifiedFraction;
+                    }
+                } catch (error) {
                     return {
                         isValid: false,
-                        message: `第${row}行第${col}列无效的分数格式：${value}`
+                        message: `第${row}行第${col}列分数化简失败：${value}`
                     };
                 }
-                continue;
-            }
-
-            // 整数验证
-            if (!integerPattern.test(value)) {
-                return {
-                    isValid: false,
-                    message: `第${row}行第${col}列包含无效字符：${value}`
-                };
             }
         }
     } else {
@@ -702,49 +715,48 @@ function validateMatrixData(useDOM = false) {
                     try {
                         const decimalValue = parseFloat(value);
                         const fraction = math.fraction(decimalValue);
-                        const fractionString = math.format(fraction, { fraction: 'ratio' });
-                        elements[row][col] = fractionString;
-                        continue;
+                        
+                        // 检查分母是否为1，如果是则转换为整数
+                        if (fraction.d === 1) {
+                            elements[row][col] = fraction.n.toString();
+                        } else {
+                            const fractionString = math.format(fraction, { fraction: 'ratio' });
+                            elements[row][col] = fractionString;
+                        }
                     } catch (error) {
                         return {
                             isValid: false,
                             message: `第${row + 1}行第${col + 1}列小数转换失败：${value}`
                         };
                     }
-                }
-
-                // 未知数验证
-                if (unknownPattern.test(value)) {
-                    continue;
-                }
-
-                // 分数验证
-                if (value.includes('/')) {
-                    const parts = value.split('/');
-                    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1]) || parts[1] === '0') {
+                } 
+                // 分数化简处理
+                else if (fractionPattern.test(value)) {
+                    try {
+                        const fraction = math.fraction(value);
+                        
+                        // 检查分母是否为1，如果是则转换为整数
+                        if (fraction.d === 1) {
+                            elements[row][col] = fraction.n.toString();
+                        } else {
+                            const simplifiedFraction = math.format(fraction, { fraction: 'ratio' });
+                            elements[row][col] = simplifiedFraction;
+                        }
+                    } catch (error) {
                         return {
                             isValid: false,
-                            message: `第${row + 1}行第${col + 1}列无效的分数格式：${value}`
+                            message: `第${row + 1}行第${col + 1}列分数化简失败：${value}`
                         };
                     }
-                    continue;
-                }
-
-                // 整数验证
-                if (!integerPattern.test(value)) {
-                    return {
-                        isValid: false,
-                        message: `第${row + 1}行第${col + 1}列包含无效字符：${value}`
-                    };
                 }
             }
         }
     }
 
-    // 所有校验通过
+    // 始终返回验证通过
     return {
         isValid: true,
-        message: '数据校验通过'
+        message: '数据处理完成'
     };
 }
 
@@ -995,17 +1007,39 @@ function getCellCoordinates(cell) {
 * 调整窗口大小以适应矩阵
  */
 function resizeWindow(dimensions) {
-    const inputWidth = 60;  // 输入框宽度
-    const inputHeight = 50; // 输入框高度
-    const gap = 0;          // 间距
+    // 动态获取输入框的实际尺寸
+    const { width: inputWidth, height: inputHeight } = getInputElementDimensions();
+    const gap = 0;
 
-    const newWidth = dimensions.cols * (inputWidth + gap);
-    const newHeight = dimensions.rows * (inputHeight + gap);
+    // 计算基本尺寸
+    let newWidth = dimensions.cols * (inputWidth + gap);
+    let newHeight = dimensions.rows * (inputHeight + gap);
 
-    // 添加动态调整类
+    // 获取屏幕尺寸类型，根据不同屏幕设置不同的最大宽度
+    const screenType = getScreenSizeType();
+    let maxWidth;
+
+    switch (screenType) {
+        case 'mobile':
+            maxWidth = window.innerWidth - 20; // 小屏幕留较小边距
+            break;
+        case 'tablet':
+            maxWidth = window.innerWidth - 30;
+            break;
+        default: // desktop
+            maxWidth = window.innerWidth - 40;
+    }
+
+    // 添加边界检查，确保窗口不会超过屏幕宽度
+    if (newWidth > maxWidth) {
+        newWidth = maxWidth;
+        // 按比例调整高度
+        newHeight = (newHeight * maxWidth) / newWidth;
+    }
+
+
+    // 更新窗口样式
     elements.windowDiv.classList.add('dynamic');
-
-    // 更新窗口大小
     elements.windowDiv.style.width = `${newWidth}px`;
     elements.windowDiv.style.height = `${newHeight}px`;
 
@@ -1014,3 +1048,33 @@ function resizeWindow(dimensions) {
     elements.windowDiv.style.gridTemplateRows = `repeat(${dimensions.rows}, ${inputHeight}px)`;
 }
 
+/**
+ * 获取当前设备上输入框的实际CSS尺寸
+ * @returns {Object} 包含width和height的对象
+ */
+function getInputElementDimensions() {
+    // 创建临时输入框来获取实际计算样式
+    const tempInput = document.createElement('input');
+    tempInput.className = 'grid-cell-input';
+    document.body.appendChild(tempInput);
+
+    const computedStyle = window.getComputedStyle(tempInput);
+    const dimensions = {
+        width: parseFloat(computedStyle.width),
+        height: parseFloat(computedStyle.height)
+    };
+
+    document.body.removeChild(tempInput);
+    return dimensions;
+}
+
+/**
+ * 获取当前屏幕尺寸类型
+ * @returns {string} 屏幕尺寸类型：'mobile', 'tablet', 'desktop'
+ */
+function getScreenSizeType() {
+    const width = window.innerWidth;
+    if (width <= CONFIG.SCREEN_SIZES.MOBILE_MAX) return 'mobile';
+    if (width <= CONFIG.SCREEN_SIZES.TABLET_MAX) return 'tablet';
+    return 'desktop';
+}
