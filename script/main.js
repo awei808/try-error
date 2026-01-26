@@ -53,8 +53,7 @@ function init() {
     setupEventListeners();
     updateUIForCurrentState();
 }
-// 初始化应用
-// 添加窗口大小变化监听
+// 初始化应用, 添加窗口大小变化监听
 document.addEventListener('DOMContentLoaded', () => {
     init();
     // 窗口大小变化时重新计算
@@ -347,14 +346,46 @@ function Undo() {
     const dim = state.matrixData ? `${state.matrixData.rows}×${state.matrixData.cols}` : CONFIG.INITIAL_DIMENSION;
     updateCoordinatesDisplay(dim);
     state.lastSelectedDimension = dim;
-updateUIForCurrentState();
+    updateUIForCurrentState();
 }
 
 /**
- * 切换输入矩阵区域的显示/隐藏
+ * 切换输入矩阵区域的显示/隐藏；支持快速录入功能
  */
 function toggleInputMatrix() {
-    elements.inputMatrixDiv.classList.toggle('visible');
+    const quickInput = document.getElementById('input');
+
+    // 如果快速录入输入框存在且不为空，则处理快速录入
+    if (quickInput && quickInput.value.trim() !== '') {
+        handleQuickInputMatrix();
+    } else {
+        // 否则执行原有的toggleInputMatrix功能
+        elements.inputMatrixDiv.classList.toggle('visible');
+    }
+}
+
+/**
+ * 处理快速录入矩阵功能（调用quickinput.js中的函数）
+ */
+function handleQuickInputMatrix() {
+    // 修复：检查quickinput.js中的函数，而不是自身
+    if (typeof window.handleQuickInputMatrix === 'function' &&
+        window.handleQuickInputMatrix !== handleQuickInputMatrix) {
+        const success = window.handleQuickInputMatrix();
+        if (success) {
+            // 快速录入成功后隐藏输入矩阵区域
+            elements.inputMatrixDiv.classList.remove('visible');
+        }
+        return success;
+    } else {
+        // 如果quickinput.js未加载，显示错误提示
+        if (typeof showPopup === 'function') {
+            showPopup('快速录入功能未加载，请检查quickinput.js文件', 'error');
+        } else {
+            alert('快速录入功能未加载，请检查quickinput.js文件');
+        }
+        return false;
+    }
 }
 /**
  * 处理鼠标按下事件
@@ -393,7 +424,6 @@ function setupEventListeners() {
     // 使用事件委托，减少事件监听器数量
     elements.windowDiv.addEventListener('mousedown', handleMouseDown);
     elements.windowDiv.addEventListener('mouseleave', handleMouseLeave);
-
     // 添加按钮事件监听器
     elements.undoButton.addEventListener('click', Undo);
     elements.nextButton.addEventListener('click', Next);
@@ -408,7 +438,7 @@ function setupEventListeners() {
 function createGrid() {
     state.gridCells = [];
     const fragment = document.createDocumentFragment();
-for (let y = 0; y < CONFIG.GRID_SIZE; y++) {
+    for (let y = 0; y < CONFIG.GRID_SIZE; y++) {
         for (let x = 0; x < CONFIG.GRID_SIZE; x++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
@@ -514,8 +544,6 @@ function restoreGridForInputElements() {
     }
 }
 
-
-
 /**
  * 将高亮单元格转换为输入框
  */
@@ -537,6 +565,7 @@ function convertHighlightedCellsToInputs(highlightedCells) {
         state.gridInputs.push(input);
     });
 }
+
 /**
  * 启用网格交互（用于撤销功能）
  */
@@ -547,9 +576,9 @@ function enableGridInteraction() {
 }
 
 /**
- * 禁用网格交互
+ * 禁用网格交互，函数未被使用
  */
-/* 未被使用
+/* 
 function disableGridInteraction() {
     // 移除所有事件监听器
     elements.windowDiv.removeEventListener('mousedown', handleMouseDown);
@@ -663,7 +692,7 @@ function validateMatrixData(useDOM = false) {
                 try {
                     const decimalValue = parseFloat(value);
                     const fraction = math.fraction(decimalValue);
-                    
+
                     // 检查分母是否为1，如果是则转换为整数
                     if (fraction.d === 1) {
                         input.value = fraction.n.toString();
@@ -677,12 +706,12 @@ function validateMatrixData(useDOM = false) {
                         message: `第${row}行第${col}列小数转换失败：${value}`
                     };
                 }
-            } 
+            }
             // 分数化简处理
             else if (fractionPattern.test(value)) {
                 try {
                     const fraction = math.fraction(value);
-                    
+
                     // 检查分母是否为1，如果是则转换为整数
                     if (fraction.d === 1) {
                         input.value = fraction.n.toString();
@@ -715,7 +744,7 @@ function validateMatrixData(useDOM = false) {
                     try {
                         const decimalValue = parseFloat(value);
                         const fraction = math.fraction(decimalValue);
-                        
+
                         // 检查分母是否为1，如果是则转换为整数
                         if (fraction.d === 1) {
                             elements[row][col] = fraction.n.toString();
@@ -729,12 +758,12 @@ function validateMatrixData(useDOM = false) {
                             message: `第${row + 1}行第${col + 1}列小数转换失败：${value}`
                         };
                     }
-                } 
+                }
                 // 分数化简处理
                 else if (fractionPattern.test(value)) {
                     try {
                         const fraction = math.fraction(value);
-                        
+
                         // 检查分母是否为1，如果是则转换为整数
                         if (fraction.d === 1) {
                             elements[row][col] = fraction.n.toString();
@@ -816,8 +845,58 @@ function showElementaryTransformationUI() {
     // 为输入框添加行列索引按钮
     addRowColumnIndices();
 
+    // 为行列索引按钮添加事件冒泡绑定
+    bindRowColumnIndexEvents();
+
     // 重新组织布局，避免元素重叠
     reorganizeLayoutForElementaryTransformation();
+}
+
+/**
+ * 为行列索引按钮绑定事件（事件冒泡方式）
+ */
+function bindRowColumnIndexEvents() {
+    // 为windowDiv添加点击事件监听器，处理行列索引按钮点击
+    elements.windowDiv.addEventListener('click', function (e) {
+        const target = e.target;
+
+        // 判断是否点击了行/列标识按钮（ID以button_add_r或button_add_c开头）
+        if (target.id.startsWith('button_add_r') || target.id.startsWith('button_add_c')) {
+            const type = target.id.includes('r') ? 'r' : 'c';
+            const num = target.textContent.replace(type, ''); // 提取数字（如"r1"→"1"）
+
+            // 获取目标输入框和参数输入框
+            const transformTarget = document.getElementById('transform-target');
+            const transformParam = document.getElementById('transform-param');
+
+            if (transformTarget && transformParam) {
+                if (transformTarget.value.trim() === '') {
+                    // 如果目标框为空，将点击的行列索引添加到目标框
+                    transformTarget.value += type + num;
+                } else {
+                    // 如果目标框不为空，将点击的行列索引添加到参数框
+                    const currentParam = transformParam.value.trim();
+                    const rowColRegex = /[rc]\d+/g;
+                    const hasRowCol = rowColRegex.test(currentParam);
+
+                    if (hasRowCol) {
+                        // 如果已经包含行列索引，则替换最后一个行列索引
+                        const lastRowColMatch = currentParam.match(rowColRegex);
+                        if (lastRowColMatch && lastRowColMatch.length > 0) {
+                            const lastRowCol = lastRowColMatch[lastRowColMatch.length - 1];
+                            const lastIndex = currentParam.lastIndexOf(lastRowCol);
+                            transformParam.value = currentParam.substring(0, lastIndex) + type + num + currentParam.substring(lastIndex + lastRowCol.length);
+                        } else {
+                            transformParam.value += type + num;
+                        }
+                    } else {
+                        // 如果没有行列索引，直接添加
+                        transformParam.value += type + num;
+                    }
+                }
+            }
+        }
+    });
 }
 
 /**
@@ -835,7 +914,6 @@ function hideElementaryTransformationUI() {
 /**
  * 重新组织布局以适应初等变换状态
  */
-
 function reorganizeLayoutForElementaryTransformation() {
     // 不再清空inputMatrixDiv，保持现有结构
 
@@ -847,15 +925,11 @@ function reorganizeLayoutForElementaryTransformation() {
         buttonGroup.classList.remove('hidden');
     });
 
-    // 不需要移动矩阵表格，保持其在windowDiv中的原始位置
-
     // 确保坐标显示正确更新（但不改变其位置）
     const coordinates = document.getElementById('coordinates');
     if (coordinates && state.matrixData) {
         coordinates.textContent = `矩阵维度: ${state.matrixData.rows}×${state.matrixData.cols}`;
     }
-
-    // 不需要创建新的布局容器，保持现有DOM结构
 }
 
 /**
@@ -900,7 +974,6 @@ function addRowColumnIndices() {
         rowButton.id = `button_add_r${row + 1}`;
         rowIndexTd.appendChild(rowButton);
         tr.appendChild(rowIndexTd);
-
         table.appendChild(tr);
     }
 
