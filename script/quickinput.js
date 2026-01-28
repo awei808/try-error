@@ -607,9 +607,6 @@ function displayMatrixTable() {
         elements.inputMatrixDiv.style.display = 'block';
     }, 0);
     console.log('表格显示成功');
-    // 绑定行列索引按钮事件
-    bindRowColumnIndexEvents();
-
 }
 
 /**

@@ -16,13 +16,8 @@
     <header>
         <button id="ButtonInputMartix">录入矩阵</button>
         <button id="ButtonQuickInput">快速录入</button>
+        <button id="ButtonTest">调试按钮</button>
     </header>
-
-    <!--
-    <button id="debugError">测试报错error弹窗</button>
-    <button id="debugSuccess">测试成功success弹窗</button>
-    <button id="debugWarning">测试警告warning弹窗</button>
-    -->
     <div id="InputMatrix">
         <h1 id="tip"></h1>
         <div>
@@ -44,10 +39,13 @@
                 <button id="button-sub">−</button>
                 <button id="button-mul">×</button>
             </div>
-            <input type="text" id="transform-coefficient" placeholder="系数">
+            <input type="text" id="transform-coefficient" placeholder="系数，默认为1">
             <input type="text" id="transform-param" placeholder="参数行/列 (如 r1，c2)" class="t-i-group">
             <button id="button-translate">执行初等变换</button>
         </div>
+        <p id="translate_history">初等变换历史记录：</p>
+        <button id="undo">撤销初等变换</button>
+        <button id="redo">重做初等变换</button>
     </div>
 
 
@@ -61,6 +59,7 @@
     <script src="./script/popup.js"></script>
     <script src="./script/transformation.js"></script>
     <script src="./script/quickinput.js"></script>
+    <script src="./script/test.js"></script>
 </body>
 
 </html>

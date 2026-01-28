@@ -15,7 +15,7 @@ function initTransformationButtons() {
     const transformOperator = document.getElementById('transform-operator');
 
     // 为按钮绑定点击事件
-    buttonChange.addEventListener('click', function() {
+    buttonChange.addEventListener('click', function () {
         setActiveSymbol('↔', buttonChange);
         // 隐藏系数输入框
         transformCoefficient.style.display = 'none';
@@ -25,7 +25,7 @@ function initTransformationButtons() {
         }
     });
 
-    buttonAdd.addEventListener('click', function() {
+    buttonAdd.addEventListener('click', function () {
         setActiveSymbol('+', buttonAdd);
         // 显示系数输入框
         transformCoefficient.style.display = 'block';
@@ -35,7 +35,7 @@ function initTransformationButtons() {
         }
     });
 
-    buttonSub.addEventListener('click', function() {
+    buttonSub.addEventListener('click', function () {
         setActiveSymbol('−', buttonSub);
         // 显示系数输入框
         transformCoefficient.style.display = 'block';
@@ -45,7 +45,7 @@ function initTransformationButtons() {
         }
     });
 
-    buttonMul.addEventListener('click', function() {
+    buttonMul.addEventListener('click', function () {
         setActiveSymbol('×', buttonMul);
         // 显示系数输入框
         transformCoefficient.style.display = 'block';
@@ -100,7 +100,396 @@ function getCurrentSymbol() {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 等待DOM完全加载后初始化
     setTimeout(initTransformationButtons, 100);
 });
+
+// 执行初等变换功能
+function executeElementaryTransformation() {
+    try {
+        // 1. 获取三个输入框的值
+        const targetInput = document.getElementById('transform-target').value.trim();
+        const coefficientInput = document.getElementById('transform-coefficient').value.trim();
+        const paramInput = document.getElementById('transform-param').value.trim();
+
+        // 2. 获取当前符号
+        const currentSymbol = getCurrentSymbol();
+
+        // 校验输入
+        const validationResult = validateTransformationInputs(targetInput, coefficientInput, paramInput, currentSymbol);
+        if (!validationResult.isValid) {
+            showError(validationResult.message);
+            return false;
+        }
+
+        // 解析输入
+        const { targetType, targetIndex, paramType, paramIndex, coefficient } = validationResult.parsedData;
+
+        // 3. 根据符号执行相应的初等变换
+        let transformationResult;
+        switch (currentSymbol) {
+            case '↔':
+                transformationResult = executeRowColumnSwap(targetType, targetIndex, paramType, paramIndex);
+                break;
+            case '+':
+            case '−':
+                transformationResult = executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIndex, coefficient, currentSymbol);
+                break;
+            case '×':
+                transformationResult = executeRowColumnMultiply(targetType, targetIndex, coefficient);
+                break;
+            default:
+                showError('请先选择初等变换操作类型');
+                return false;
+        }
+
+        if (transformationResult.success) {
+            showSuccess(`初等变换执行成功: ${transformationResult.description}`);
+            // 更新矩阵显示
+            if (state.matrixData) {
+                displayMatrixTable();
+            }
+            return true;
+        } else {
+            showError(`初等变换执行失败: ${transformationResult.message}`);
+            return false;
+        }
+
+    } catch (error) {
+        showError(`执行初等变换时发生错误: ${error.message}`);
+        return false;
+    }
+}
+
+// 校验和解析输入数据
+function validateTransformationInputs(targetInput, coefficientInput, paramInput, currentSymbol) {
+    // 校验目标输入
+    if (!targetInput) {
+        return { isValid: false, message: '请输入目标行/列' };
+    }
+
+    const targetMatch = targetInput.match(/^([rc])(\d+)$/i);
+    if (!targetMatch) {
+        return { isValid: false, message: '目标行/列格式错误，请使用如 r1, c2 的格式' };
+    }
+
+    const targetType = targetMatch[1].toLowerCase(); // 'r' 或 'c'
+    const targetIndex = parseInt(targetMatch[2]) - 1; // 转换为0-based索引
+
+    // 校验矩阵数据
+    if (!state.matrixData || !state.matrixData.elements) {
+        return { isValid: false, message: '矩阵数据不存在，请先录入矩阵' };
+    }
+
+    // 校验目标索引范围
+    const maxIndex = targetType === 'r' ? state.matrixData.rows - 1 : state.matrixData.cols - 1;
+    if (targetIndex < 0 || targetIndex > maxIndex) {
+        return { isValid: false, message: `目标${targetType === 'r' ? '行' : '列'}索引超出范围` };
+    }
+
+    let coefficient = null;
+    let paramType = null;
+    let paramIndex = null;
+
+    // 根据操作类型进行不同的校验
+    switch (currentSymbol) {
+        case '↔':
+            // 交换操作需要参数
+            if (!paramInput) {
+                return { isValid: false, message: '交换操作需要参数行/列' };
+            }
+
+            const paramMatch = paramInput.match(/^([rc])(\d+)$/i);
+            if (!paramMatch) {
+                return { isValid: false, message: '参数行/列格式错误，请使用如 r1, c2 的格式' };
+            }
+
+            paramType = paramMatch[1].toLowerCase();
+            paramIndex = parseInt(paramMatch[2]) - 1;
+
+            // 校验参数索引范围
+            const paramMaxIndex = paramType === 'r' ? state.matrixData.rows - 1 : state.matrixData.cols - 1;
+            if (paramIndex < 0 || paramIndex > paramMaxIndex) {
+                return { isValid: false, message: `参数${paramType === 'r' ? '行' : '列'}索引超出范围` };
+            }
+
+            // 交换操作要求类型相同
+            if (targetType !== paramType) {
+                return { isValid: false, message: '交换操作只能在同行或同列之间进行' };
+            }
+            break;
+
+        case '+':
+        case '−':
+            // 加减操作需要系数和参数
+            if (!coefficientInput) {
+                return { isValid: false, message: '加减操作需要系数' };
+            }
+            if (!paramInput) {
+                return { isValid: false, message: '加减操作需要参数行/列' };
+            }
+
+            // 校验系数（不能包含未知数）
+            if (/[a-zA-Zλ]/.test(coefficientInput)) {
+                return { isValid: false, message: '系数不能包含未知数' };
+            }
+
+            // 将系数转为最简分数
+            try {
+                coefficient = parseAndSimplifyCoefficient(coefficientInput);
+            } catch (error) {
+                return { isValid: false, message: `系数格式错误: ${error.message}` };
+            }
+
+            const addParamMatch = paramInput.match(/^([rc])(\d+)$/i);
+            if (!addParamMatch) {
+                return { isValid: false, message: '参数行/列格式错误，请使用如 r1, c2 的格式' };
+            }
+
+            paramType = addParamMatch[1].toLowerCase();
+            paramIndex = parseInt(addParamMatch[2]) - 1;
+
+            // 校验参数索引范围
+            const addParamMaxIndex = paramType === 'r' ? state.matrixData.rows - 1 : state.matrixData.cols - 1;
+            if (paramIndex < 0 || paramIndex > addParamMaxIndex) {
+                return { isValid: false, message: `参数${paramType === 'r' ? '行' : '列'}索引超出范围` };
+            }
+
+            // 加减操作要求类型相同
+            if (targetType !== paramType) {
+                return { isValid: false, message: '加减操作只能在同行或同列之间进行' };
+            }
+            break;
+
+        case '×':
+            // 倍乘操作需要系数
+            if (!coefficientInput) {
+                return { isValid: false, message: '倍乘操作需要系数' };
+            }
+
+            // 校验系数（不能包含未知数）
+            if (/[a-zA-Zλ]/.test(coefficientInput)) {
+                return { isValid: false, message: '系数不能包含未知数' };
+            }
+
+            // 将系数转为最简分数
+            try {
+                coefficient = parseAndSimplifyCoefficient(coefficientInput);
+            } catch (error) {
+                return { isValid: false, message: `系数格式错误: ${error.message}` };
+            }
+            break;
+
+        default:
+            return { isValid: false, message: '请先选择初等变换操作类型' };
+    }
+
+    return {
+        isValid: true,
+        message: '输入校验通过',
+        parsedData: {
+            targetType,
+            targetIndex,
+            paramType,
+            paramIndex,
+            coefficient
+        }
+    };
+}
+
+// 解析并化简系数（处理小数和分数）
+function parseAndSimplifyCoefficient(coefficientInput) {
+    let coefficient;
+
+    // 如果是小数，转为分数
+    if (/^-?\d+\.\d+$/.test(coefficientInput)) {
+        const decimalValue = parseFloat(coefficientInput);
+        coefficient = math.fraction(decimalValue);
+    }
+    // 如果是分数，直接解析
+    else if (/^-?\d+\/\d+$/.test(coefficientInput)) {
+        coefficient = math.fraction(coefficientInput);
+    }
+    // 如果是整数
+    else if (/^-?\d+$/.test(coefficientInput)) {
+        coefficient = math.fraction(parseInt(coefficientInput));
+    }
+    else {
+        throw new Error('系数格式不支持');
+    }
+
+    // 返回化简后的分数字符串
+    if (coefficient.d === 1) {
+        return coefficient.n.toString(); // 分母为1，返回整数
+    } else {
+        return math.format(coefficient, { fraction: 'ratio' }); // 返回分数格式
+    }
+}
+
+// 执行行/列交换
+function executeRowColumnSwap(targetType, targetIndex, paramType, paramIndex) {
+    const matrix = state.matrixData.elements;
+
+    if (targetType === 'r') {
+        // 交换行
+        const temp = matrix[targetIndex];
+        matrix[targetIndex] = matrix[paramIndex];
+        matrix[paramIndex] = temp;
+
+        return {
+            success: true,
+            description: `交换第${targetIndex + 1}行和第${paramIndex + 1}行`
+        };
+    } else {
+        // 交换列
+        for (let i = 0; i < state.matrixData.rows; i++) {
+            const temp = matrix[i][targetIndex];
+            matrix[i][targetIndex] = matrix[i][paramIndex];
+            matrix[i][paramIndex] = temp;
+        }
+
+        return {
+            success: true,
+            description: `交换第${targetIndex + 1}列和第${paramIndex + 1}列`
+        };
+    }
+}
+
+// 执行行/列加减
+function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIndex, coefficient, operation) {
+    const matrix = state.matrixData.elements;
+    const isAddition = operation === '+';
+
+    if (targetType === 'r') {
+        // 行加减
+        for (let j = 0; j < state.matrixData.cols; j++) {
+            const targetValue = matrix[targetIndex][j];
+            const paramValue = matrix[paramIndex][j];
+
+            // 这里需要实现矩阵元素的加减运算（需要扩展支持多项式运算）
+            // 暂时使用简单实现
+            matrix[targetIndex][j] = isAddition ?
+                `(${targetValue})+${coefficient}*(${paramValue})` :
+                `(${targetValue})-${coefficient}*(${paramValue})`;
+        }
+
+        return {
+            success: true,
+            description: `${isAddition ? '加' : '减'}法：第${targetIndex + 1}行 ${isAddition ? '+' : '-'} ${coefficient}×第${paramIndex + 1}行`
+        };
+    } else {
+        // 列加减
+        for (let i = 0; i < state.matrixData.rows; i++) {
+            const targetValue = matrix[i][targetIndex];
+            const paramValue = matrix[i][paramIndex];
+
+            matrix[i][targetIndex] = isAddition ?
+                `(${targetValue})+${coefficient}*(${paramValue})` :
+                `(${targetValue})-${coefficient}*(${paramValue})`;
+        }
+
+        return {
+            success: true,
+            description: `${isAddition ? '加' : '减'}法：第${targetIndex + 1}列 ${isAddition ? '+' : '-'} ${coefficient}×第${paramIndex + 1}列`
+        };
+    }
+}
+
+// 执行行/列倍乘
+function executeRowColumnMultiply(targetType, targetIndex, coefficient) {
+    const matrix = state.matrixData.elements;
+
+    if (targetType === 'r') {
+        // 行倍乘
+        for (let j = 0; j < state.matrixData.cols; j++) {
+            const currentValue = matrix[targetIndex][j];
+            matrix[targetIndex][j] = `${coefficient}*(${currentValue})`;
+        }
+
+        return {
+            success: true,
+            description: `倍乘：第${targetIndex + 1}行 × ${coefficient}`
+        };
+    } else {
+        // 列倍乘
+        for (let i = 0; i < state.matrixData.rows; i++) {
+            const currentValue = matrix[i][targetIndex];
+            matrix[i][targetIndex] = `${coefficient}*(${currentValue})`;
+        }
+
+        return {
+            success: true,
+            description: `倍乘：第${targetIndex + 1}列 × ${coefficient}`
+        };
+    }
+}
+
+// 为执行按钮绑定点击事件
+function initTranslateButton() {
+    const translateButton = document.getElementById('button-translate');
+    if (translateButton) {
+        translateButton.addEventListener('click', executeElementaryTransformation);
+    }
+}
+
+// 更新初始化函数，添加执行按钮的初始化
+function initTransformationButtons() {
+    // 获取所有按钮和输入框
+    const buttonChange = document.getElementById('button-change');
+    const buttonAdd = document.getElementById('button-add');
+    const buttonSub = document.getElementById('button-sub');
+    const buttonMul = document.getElementById('button-mul');
+    const transformCoefficient = document.getElementById('transform-coefficient');
+    const transformOperator = document.getElementById('transform-operator');
+
+    // 交换按钮
+    buttonChange.addEventListener('click', function () {
+        setActiveSymbol('↔', buttonChange);
+        // 隐藏系数输入框
+        transformCoefficient.style.display = 'none';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '↔';
+        }
+    });
+    
+    //加法按钮
+    buttonAdd.addEventListener('click', function () {
+        setActiveSymbol('+', buttonAdd);
+        // 显示系数输入框
+        transformCoefficient.style.display = 'block';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '+';
+        }
+    });
+
+    //减法按钮
+    buttonSub.addEventListener('click', function () {
+        setActiveSymbol('−', buttonSub);
+        // 显示系数输入框
+        transformCoefficient.style.display = 'block';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '−';
+        }
+    });
+
+    //倍乘按钮
+    buttonMul.addEventListener('click', function () {
+        setActiveSymbol('×', buttonMul);
+        // 显示系数输入框
+        transformCoefficient.style.display = 'block';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '×';
+        }
+    });
+
+    // 初始化执行按钮
+    initTranslateButton();
+
+    // 初始化状态
+    resetButtonStyles();
+}

@@ -16,6 +16,7 @@ const CONFIG = {
     },
     // 状态定义
     STATES: {
+        INIT: 'init', // 新增：初始状态
         SELECT_DIMENSION: 'select_dimension',
         INPUT_ELEMENTS: 'input_elements',
         ELEMENTARY_TRANSFORMATION: 'elementary_transformation'  // 新增初等变换状态
@@ -28,9 +29,10 @@ const state = {
     lastSelectedDimension: CONFIG.INITIAL_DIMENSION,
     gridCells: [], // 缓存网格元素引用
     gridInputs: [], // 缓存输入框元素引用
-    currentState: CONFIG.STATES.SELECT_DIMENSION, // 当前状态
+    currentState: CONFIG.STATES.INIT, // 修改：默认状态为INIT
     matrixData: null, // 存储矩阵数据，预期格式{rows，cols，elements}
-    previousStates: [] // 状态历史，用于撤销
+    previousStates: [],// 状态历史，用于撤销
+    rowColumnIndexEventListener: null // 新增：存储行列索引事件监听器引用
 };
 
 // DOM元素引用
@@ -51,6 +53,9 @@ const elements = {
 function init() {
     createGrid();
     setupEventListeners();
+    
+    // 确保初始状态为INIT
+    state.currentState = CONFIG.STATES.INIT;
     updateUIForCurrentState();
 }
 // 初始化应用, 添加窗口大小变化监听
@@ -70,6 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function updateUIForCurrentState() {
     switch (state.currentState) {
+        case CONFIG.STATES.INIT: // 新增：初始状态
+            console.log('to 初始状态');
+            elements.tipDiv.textContent = '请点击"录入矩阵"按钮开始';
+            elements.nextButton.textContent = '下一步';
+            elements.nextButton.disabled = true;
+            elements.nextButton.style.opacity = '0.6';
+            elements.nextButton.style.cursor = 'not-allowed';
+            elements.undoButton.disabled = true;
+            elements.undoButton.style.opacity = '0.6';
+            elements.undoButton.style.cursor = 'not-allowed';
+            disableGridInteraction();
+            break;
+
         case CONFIG.STATES.SELECT_DIMENSION:
             console.log('to 维度选择');
             elements.tipDiv.textContent = '点击网格选择矩阵大小';
@@ -79,7 +97,7 @@ function updateUIForCurrentState() {
             elements.nextButton.style.cursor = 'pointer';
             elements.undoButton.disabled = true;
             elements.undoButton.style.opacity = '0.6';
-            elements.undoButton.style.cursor = 'not-allowed'; // 补充undoButton的cursor属性
+            elements.undoButton.style.cursor = 'not-allowed'; 
             enableGridInteraction();
             break;
 
@@ -95,6 +113,7 @@ function updateUIForCurrentState() {
             elements.undoButton.style.opacity = '1';
             elements.undoButton.style.cursor = 'pointer'; // 补充undoButton的cursor属性
             enableInputInteraction();
+            disableGridInteraction();
             break;
 
 
@@ -111,6 +130,7 @@ function updateUIForCurrentState() {
             elements.undoButton.style.opacity = '1';
             elements.undoButton.style.cursor = 'pointer'; // 补充undoButton的cursor属性
             showElementaryTransformationUI();
+            disableGridInteraction();
             break;
     }
 }
@@ -201,8 +221,6 @@ function handleDataValidation() {
         }
         return false; // 返回处理失败
     }
-    // 3. 渲染初等变换UI（确保矩阵元素能正确显示）
-    showElementaryTransformationUI();
     // 4. 更新坐标显示和全局UI
     updateCoordinatesDisplay(`${state.matrixData.rows}×${state.matrixData.cols}`);
     return true; // 返回处理成功
@@ -229,6 +247,9 @@ function handleDataValidation() {
 function resetToInitialState() {
     // 清空窗口内容
     elements.windowDiv.innerHTML = '';
+
+    // 移除行列索引事件监听器
+    unbindRowColumnIndexEvents();
 
     // 重置窗口样式
     elements.windowDiv.classList.remove('dynamic');
@@ -299,7 +320,7 @@ function Next() {
  * 处理撤销按钮点击
  */
 function Undo() {
-    if (state.previousStates.length === 0) {//对应无状态，按理说不会出现这种情况
+    if (state.previousStates.length === 0) {
         if (typeof showPopup === 'function') {
             showPopup('没有可撤销的操作', 'warning');
         } else {
@@ -308,35 +329,28 @@ function Undo() {
         return;
     }
 
-    // 弹出最后一次保存的状态（深拷贝避免引用污染）
+    // 弹出最后一次保存的状态
     const previousState = state.previousStates.pop();
     const prevStateType = previousState.state;
     const prevMatrixData = previousState.matrixData ? JSON.parse(JSON.stringify(previousState.matrixData)) : null;
 
-    // 1. 先清理当前状态的特殊UI（比如初等变换操作框）
+    // 1. 清理当前状态的特殊UI（包括事件监听器）
     if (state.currentState === CONFIG.STATES.ELEMENTARY_TRANSFORMATION) {
-        hideElementaryTransformationUI(); // 隐藏初等变换UI
+        hideElementaryTransformationUI(); // 这会移除事件监听器
     }
+
     // 2. 恢复前一个状态
     switch (state.currentState) {
-        /*按钮被禁用，这段代码未被使用
-        case CONFIG.STATES.SELECT_DIMENSION:
-            console.log('维度选择下, undo');
-            restoreOriginalGrid();
-            break;
-        */
         case CONFIG.STATES.INPUT_ELEMENTS:
             console.log('输入元素下, undo');
             restoreOriginalGrid();
             break;
-
 
         case CONFIG.STATES.ELEMENTARY_TRANSFORMATION:
             console.log('初等变换下, undo');
             restoreGridForInputElements();
             break;
     }
-
 
     // 3. 全局状态回滚
     state.currentState = prevStateType;
@@ -352,8 +366,23 @@ function Undo() {
 /**
  * 切换输入矩阵区域的显示/隐藏；支持快速录入功能
  */
-function toggleInputMatrix() {
+function startMatrixInput() {
     const quickInput = document.getElementById('input');
+
+    // 如果当前是初始状态，切换到维度选择状态
+    if (state.currentState === CONFIG.STATES.INIT) {
+        // 保存当前状态到历史
+        state.previousStates.push({
+            state: state.currentState,
+            matrixData: state.matrixData ? JSON.parse(JSON.stringify(state.matrixData)) : null
+        });
+        
+        // 切换到维度选择状态
+        state.currentState = CONFIG.STATES.SELECT_DIMENSION;
+        updateUIForCurrentState();
+        elements.inputMatrixDiv.classList.toggle('visible');
+        return;
+    }
 
     // 如果快速录入输入框存在且不为空，则处理快速录入
     if (quickInput && quickInput.value.trim() !== '') {
@@ -428,7 +457,7 @@ function setupEventListeners() {
     elements.undoButton.addEventListener('click', Undo);
     elements.nextButton.addEventListener('click', Next);
     // 添加录入矩阵按钮点击事件
-    elements.buttonInputMatrix.addEventListener('click', toggleInputMatrix);
+    elements.buttonInputMatrix.addEventListener('click', startMatrixInput);
 }
 
 // ==================== 网格操作函数 ====================
@@ -576,14 +605,13 @@ function enableGridInteraction() {
 }
 
 /**
- * 禁用网格交互，函数未被使用
+ * 禁用网格交互
  */
-/* 
 function disableGridInteraction() {
-    // 移除所有事件监听器
+    // 移除鼠标事件监听器
     elements.windowDiv.removeEventListener('mousedown', handleMouseDown);
     elements.windowDiv.removeEventListener('mouseleave', handleMouseLeave);
-}*/
+}
 
 /**
  * 启用输入框交互
@@ -827,6 +855,18 @@ function calculateMatrixDimensions(highlightedCells) {
 // ====================  UI操作函数 ====================
 
 /**
+ * 隐藏初等变换UI（核心：清理初等变换操作框）
+ */
+function hideElementaryTransformationUI() {
+    // 移除初等变换相关的DOM元素（根据实际DOM结构调整选择器）
+    const transformUI = document.querySelector('.operator-buttons');
+    transformUI.classList.add('hidden');
+
+    // 移除行列索引事件监听器
+    unbindRowColumnIndexEvents();
+}
+
+/**
  * 显示初等变换UI
  */
 function showElementaryTransformationUI() {
@@ -845,7 +885,7 @@ function showElementaryTransformationUI() {
     // 为输入框添加行列索引按钮
     addRowColumnIndices();
 
-    // 为行列索引按钮添加事件冒泡绑定
+    // 为行列索引按钮添加事件冒泡绑定（现在有双重保护）
     bindRowColumnIndexEvents();
 
     // 重新组织布局，避免元素重叠
@@ -856,10 +896,22 @@ function showElementaryTransformationUI() {
  * 为行列索引按钮绑定事件（事件冒泡方式）
  */
 function bindRowColumnIndexEvents() {
-    // 为windowDiv添加点击事件监听器，处理行列索引按钮点击
-    elements.windowDiv.addEventListener('click', function (e) {
-        const target = e.target;
+    // 在最外层添加条件判断：若事件监听器已绑定，则直接返回
+    if (state.isRowColumnIndexEventsBound && state.rowColumnIndexEventListener) {
+        console.log('行列索引事件监听器已绑定，跳过重复绑定');
+        return;
+    }
 
+    // 先移除已存在的事件监听器（安全措施）
+    if (state.rowColumnIndexEventListener) {
+        elements.windowDiv.removeEventListener('click', state.rowColumnIndexEventListener);
+        state.rowColumnIndexEventListener = null;
+    }
+
+    // 为windowDiv添加点击事件监听器，处理行列索引按钮点击
+    const eventListener = function (e) {
+        const target = e.target;
+        console.log('点击了元素:', target.id); // 调试用，打印点击的元素ID
         // 判断是否点击了行/列标识按钮（ID以button_add_r或button_add_c开头）
         if (target.id.startsWith('button_add_r') || target.id.startsWith('button_add_c')) {
             const type = target.id.includes('r') ? 'r' : 'c';
@@ -896,19 +948,25 @@ function bindRowColumnIndexEvents() {
                 }
             }
         }
-    });
+    };
+
+    // 绑定事件监听器并保存引用
+    elements.windowDiv.addEventListener('click', eventListener);
+    state.rowColumnIndexEventListener = eventListener;
+    state.isRowColumnIndexEventsBound = true; // 标记为已绑定
+    console.log('行列索引事件监听器已绑定');
 }
 
 /**
- * 隐藏初等变换UI（核心：清理初等变换操作框）
+ * 移除行列索引事件监听器
  */
-function hideElementaryTransformationUI() {
-    // 移除初等变换相关的DOM元素（根据实际DOM结构调整选择器）
-    const transformUI = document.querySelector('.operator-buttons');
-
-    transformUI.classList.add('hidden');
-
-
+function unbindRowColumnIndexEvents() {
+    if (state.rowColumnIndexEventListener) {
+        elements.windowDiv.removeEventListener('click', state.rowColumnIndexEventListener);
+        state.rowColumnIndexEventListener = null;
+        state.isRowColumnIndexEventsBound = false; // 标记为未绑定
+        console.log('行列索引事件监听器已移除');
+    }
 }
 
 /**
