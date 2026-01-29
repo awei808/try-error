@@ -72,7 +72,7 @@ function initTransformationButtons() {
         transformCoefficient.style.visibility = 'hidden';
         transformCoefficient.style.opacity = '0';
         transformCoefficient.style.pointerEvents = 'none';
-        
+
         transformParam.style.visibility = 'visible';
         transformParam.style.opacity = '1';
         transformParam.style.pointerEvents = 'auto';
@@ -81,7 +81,7 @@ function initTransformationButtons() {
             transformOperator.value = '↔';
         }
     });
-    
+
     //加法按钮
     buttonAdd.addEventListener('click', function () {
         setActiveSymbol('+', buttonAdd);
@@ -89,7 +89,7 @@ function initTransformationButtons() {
         transformCoefficient.style.visibility = 'visible';
         transformCoefficient.style.opacity = '1';
         transformCoefficient.style.pointerEvents = 'auto';
-        
+
         transformParam.style.visibility = 'visible';
         transformParam.style.opacity = '1';
         transformParam.style.pointerEvents = 'auto';
@@ -106,7 +106,7 @@ function initTransformationButtons() {
         transformCoefficient.style.visibility = 'visible';
         transformCoefficient.style.opacity = '1';
         transformCoefficient.style.pointerEvents = 'auto';
-        
+
         transformParam.style.visibility = 'visible';
         transformParam.style.opacity = '1';
         transformParam.style.pointerEvents = 'auto';
@@ -123,7 +123,7 @@ function initTransformationButtons() {
         transformCoefficient.style.visibility = 'visible';
         transformCoefficient.style.opacity = '1';
         transformCoefficient.style.pointerEvents = 'auto';
-        
+
         // 使用空白占位方式隐藏参数框
         transformParam.style.visibility = 'hidden';
         transformParam.style.opacity = '0';
@@ -139,6 +139,13 @@ function initTransformationButtons() {
 
     // 初始化状态
     resetButtonStyles();
+}
+// 为执行按钮绑定点击事件
+function initTranslateButton() {
+    const translateButton = document.getElementById('button-translate');
+    if (translateButton) {
+        translateButton.addEventListener('click', executeElementaryTransformation);
+    }
 }
 
 // ==================== 相关计算函数 ====================
@@ -223,6 +230,11 @@ function validateTransformationInputs(targetInput, coefficientInput, paramInput,
     const maxIndex = targetType === 'r' ? state.matrixData.rows - 1 : state.matrixData.cols - 1;
     if (targetIndex < 0 || targetIndex > maxIndex) {
         return { isValid: false, message: `目标${targetType === 'r' ? '行' : '列'}索引超出范围` };
+    }
+
+    //校验分母是否为零
+    if (coefficientInput.includes('/0')) {
+        return { isValid: false, message: '系数分母不能为0' };
     }
 
     let coefficient = null;
@@ -320,8 +332,9 @@ function validateTransformationInputs(targetInput, coefficientInput, paramInput,
             }
 
             // 检查系数是否为1（无效变换）
-            if(coefficient === '1'){
+            if (coefficient === '1/1' || coefficient === '1') {
                 return { isValid: false, message: '倍乘系数为1，无效变换' }
+
             }
             break;
 
@@ -347,7 +360,7 @@ function parseAndSimplifyCoefficient(mathInput) {
     try {
         // 核心：math.fraction()自动识别整数/小数/分数字符串/数字，自动化简
         const fraction = math.fraction(mathInput);
-        
+
         // 格式化输出：分母为1时返回整数，否则返回分数
         return math.format(fraction, { fraction: 'ratio' });
     } catch (error) {
@@ -360,21 +373,21 @@ function parseAndSimplifyPolynomial(expression) {
     try {
         // 使用math.js解析表达式
         const parsed = math.parse(expression);
-        
+
         // 简化表达式
         const simplified = math.simplify(parsed);
-        
+
         // 转换为字符串
         let result = simplified.toString();
-        
+
         // 替换math.js的lambda符号为希腊字母λ
         result = result.replace(/lambda/g, 'λ');
         result = result.replace(/Lambda/g, 'Λ');
-        
+
         // 移除不必要的括号
         result = result.replace(/\(([a-zA-Zλ]+)\)/g, '$1');
         result = result.replace(/\((\d+)\)/g, '$1');
-        
+
         return result;
     } catch (error) {
         // 如果解析失败，返回原始表达式
@@ -387,14 +400,14 @@ function parseAndSimplifyPolynomial(expression) {
 function validatePolynomialVariables(expression) {
     // 提取所有变量
     const variables = expression.match(/[a-zA-Zλ]/g) || [];
-    
+
     // 检查每个变量是否在允许列表中
     for (const variable of variables) {
         if (!allowedVariables.includes(variable)) {
             return false;
         }
     }
-    
+
     return true;
 }
 
@@ -433,7 +446,7 @@ function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIn
     if (!coefficient || coefficient === '') {
         coefficient = 1;
     }
-    
+
     const matrix = state.matrixData.elements;
     const isAddition = operation === '+';
 
@@ -452,15 +465,15 @@ function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIn
                 } else {
                     mathExpression = `(${targetValue}) - (${coefficient})*(${paramValue})`;
                 }
-                
+
                 // 简化表达式
                 const result = parseAndSimplifyPolynomial(mathExpression);
-                
+
                 // 验证结果中的变量
                 if (!validatePolynomialVariables(result)) {
                     throw new Error('表达式包含不允许的变量');
                 }
-                
+
                 matrix[targetIndex][j] = result;
             } catch (error) {
                 // 如果计算失败，使用原始拼接方式
@@ -490,15 +503,15 @@ function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIn
                 } else {
                     mathExpression = `(${targetValue}) - (${coefficient})*(${paramValue})`;
                 }
-                
+
                 // 简化表达式
                 const result = parseAndSimplifyPolynomial(mathExpression);
-                
+
                 // 验证结果中的变量
                 if (!validatePolynomialVariables(result)) {
                     throw new Error('表达式包含不允许的变量');
                 }
-                
+
                 matrix[i][targetIndex] = result;
             } catch (error) {
                 // 如果计算失败，使用原始拼接方式
@@ -545,10 +558,3 @@ function executeRowColumnMultiply(targetType, targetIndex, coefficient) {
     }
 }
 
-// 为执行按钮绑定点击事件
-function initTranslateButton() {
-    const translateButton = document.getElementById('button-translate');
-    if (translateButton) {
-        translateButton.addEventListener('click', executeElementaryTransformation);
-    }
-}
