@@ -537,7 +537,26 @@ function executeRowColumnMultiply(targetType, targetIndex, coefficient) {
         // 行倍乘
         for (let j = 0; j < state.matrixData.cols; j++) {
             const currentValue = matrix[targetIndex][j];
-            matrix[targetIndex][j] = `${coefficient}*(${currentValue})`;
+            
+            // 使用math.js执行倍乘运算
+            try {
+                // 构建数学表达式
+                const mathExpression = `(${coefficient})*(${currentValue})`;
+                
+                // 简化表达式
+                const result = parseAndSimplifyPolynomial(mathExpression);
+                
+                // 验证结果中的变量
+                if (!validatePolynomialVariables(result)) {
+                    throw new Error('表达式包含不允许的变量');
+                }
+                
+                matrix[targetIndex][j] = result;
+            } catch (error) {
+                // 如果计算失败，使用原始拼接方式
+                console.error('倍乘计算错误:', error);
+                matrix[targetIndex][j] = `${coefficient}*(${currentValue})`;
+            }
         }
 
         return {
@@ -548,7 +567,26 @@ function executeRowColumnMultiply(targetType, targetIndex, coefficient) {
         // 列倍乘
         for (let i = 0; i < state.matrixData.rows; i++) {
             const currentValue = matrix[i][targetIndex];
-            matrix[i][targetIndex] = `${coefficient}*(${currentValue})`;
+            
+            // 使用math.js执行倍乘运算
+            try {
+                // 构建数学表达式
+                const mathExpression = `(${coefficient})*(${currentValue})`;
+                
+                // 简化表达式
+                const result = parseAndSimplifyPolynomial(mathExpression);
+                
+                // 验证结果中的变量
+                if (!validatePolynomialVariables(result)) {
+                    throw new Error('表达式包含不允许的变量');
+                }
+                
+                matrix[i][targetIndex] = result;
+            } catch (error) {
+                // 如果计算失败，使用原始拼接方式
+                console.error('倍乘计算错误:', error);
+                matrix[i][targetIndex] = `${coefficient}*(${currentValue})`;
+            }
         }
 
         return {
@@ -557,4 +595,3 @@ function executeRowColumnMultiply(targetType, targetIndex, coefficient) {
         };
     }
 }
-
