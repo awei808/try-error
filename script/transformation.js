@@ -259,24 +259,26 @@ function validateTransformationInputs(targetInput, coefficientInput, paramInput,
 
         case '+':
         case '−':
-            // 加减操作需要系数和参数
-            if (!coefficientInput) {
-                return { isValid: false, message: '加减操作需要系数' };
-            }
+            // 加减操作需要参数
             if (!paramInput) {
                 return { isValid: false, message: '加减操作需要参数行/列' };
             }
 
-            // 校验系数（不能包含未知数）
-            if (/[a-zA-Zλ]/.test(coefficientInput)) {
-                return { isValid: false, message: '系数不能包含未知数' };
-            }
+            // 如果系数框没有值，则默认为1
+            if (!coefficientInput || coefficientInput.trim() === '') {
+                coefficient = 1;
+            } else {
+                // 校验系数（不能包含未知数）
+                if (/[a-zA-Zλ]/.test(coefficientInput)) {
+                    return { isValid: false, message: '系数不能包含未知数' };
+                }
 
-            // 将系数转为最简分数
-            try {
-                coefficient = parseAndSimplifyCoefficient(coefficientInput);
-            } catch (error) {
-                return { isValid: false, message: `系数格式错误: ${error.message}` };
+                // 将系数转为最简分数
+                try {
+                    coefficient = parseAndSimplifyCoefficient(coefficientInput);
+                } catch (error) {
+                    return { isValid: false, message: `系数格式错误: ${error.message}` };
+                }
             }
 
             const addParamMatch = paramInput.match(/^([rc])(\d+)$/i);
@@ -316,6 +318,11 @@ function validateTransformationInputs(targetInput, coefficientInput, paramInput,
             } catch (error) {
                 return { isValid: false, message: `系数格式错误: ${error.message}` };
             }
+
+            // 检查系数是否为1（无效变换）
+            if(coefficient === '1'){
+                return { isValid: false, message: '倍乘系数为1，无效变换' }
+            }
             break;
 
         default:
@@ -336,31 +343,15 @@ function validateTransformationInputs(targetInput, coefficientInput, paramInput,
 }
 
 // 解析并化简系数（处理小数和分数）
-function parseAndSimplifyCoefficient(coefficientInput) {
-    let coefficient;
-
-    // 如果是小数，转为分数
-    if (/^-?\d+\.\d+$/.test(coefficientInput)) {
-        const decimalValue = parseFloat(coefficientInput);
-        coefficient = math.fraction(decimalValue);
-    }
-    // 如果是分数，直接解析
-    else if (/^-?\d+\/\d+$/.test(coefficientInput)) {
-        coefficient = math.fraction(coefficientInput);
-    }
-    // 如果是整数
-    else if (/^-?\d+$/.test(coefficientInput)) {
-        coefficient = math.fraction(parseInt(coefficientInput));
-    }
-    else {
+function parseAndSimplifyCoefficient(mathInput) {
+    try {
+        // 核心：math.fraction()自动识别整数/小数/分数字符串/数字，自动化简
+        const fraction = math.fraction(mathInput);
+        
+        // 格式化输出：分母为1时返回整数，否则返回分数
+        return math.format(fraction, { fraction: 'ratio' });
+    } catch (error) {
         throw new Error('系数格式不支持');
-    }
-
-    // 返回化简后的分数字符串
-    if (coefficient.d === 1) {
-        return coefficient.n.toString(); // 分母为1，返回整数
-    } else {
-        return math.format(coefficient, { fraction: 'ratio' }); // 返回分数格式
     }
 }
 

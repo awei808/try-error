@@ -165,12 +165,11 @@ class PopupManager {
         // 添加淡出动画
         popupDiv.classList.add('fade-out');
         
-        // 动画结束后移除元素
+        // 动画结束后移除DOM元素
         setTimeout(() => {
             if (popupDiv.parentNode) {
                 popupDiv.parentNode.removeChild(popupDiv);
             }
-            this.currentPopups.delete(popupId);
         }, 300);
     }
     

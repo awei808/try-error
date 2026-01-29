@@ -792,9 +792,9 @@ function validateMatrixData(useDOM = false) {
 }
 
 /**  
-* 填充空输入框并验证
+* 填充空输入框并验证，函数未被使用
  */
-function fillEmptyInputsAndValidate() {
+/*function fillEmptyInputsAndValidate() {
     const inputs = Array.from(elements.windowDiv.querySelectorAll('.grid-cell-input'));
 
     // 遍历所有输入框，将空输入框的值设为0
@@ -806,7 +806,7 @@ function fillEmptyInputsAndValidate() {
 
     // 验证所有输入框是否已填写（现在应该都填了）
     return inputs.every(input => input.value.trim() !== '');
-}
+}*/
 
 /**
  * 计算矩阵的实际维度
