@@ -142,12 +142,8 @@ function handleDimensionSelection() {
     // 获取所有高亮的单元格
     const highlightedCells = Array.from(elements.windowDiv.querySelectorAll('.grid-cell.highlighted'));
     if (highlightedCells.length === 0) {
-        // 替换alert为popup弹窗
-        if (typeof showPopup === 'function') {
-            showPopup('请先选择矩阵维度（点击并拖动网格）', 'warning');
-        } else {
-            alert('请先选择矩阵维度（点击并拖动网格）');
-        }
+        // 使用新版弹窗函数
+        showWarning('请先选择矩阵维度（点击并拖动网格）');
         state.previousStates.pop(); // 移除无效的状态保存
         return false; // 返回处理失败
     }
@@ -181,12 +177,8 @@ function handleDimensionSelection() {
     const allFilled = fillEmptyInputsAndValidate();
 
     if (!allFilled) {
-        if (typeof showPopup === 'function') {
-            showPopup('请填写所有矩阵元素', 'warning');
-        } else {
-            alert('请填写所有矩阵元素');
-        }
-        state.previousStates.pop();
+    showWarning('请填写所有矩阵元素');
+    state.previousStates.pop();
 return;
     }
 
@@ -214,11 +206,7 @@ function handleDataValidation() {
     const validationResult = validateMatrixData();
     if (!validationResult.isValid) {
         // 校验失败：提示错误并终止流程
-        if (typeof showPopup === 'function') {
-            showPopup(validationResult.message, 'error');
-        } else {
-            alert(validationResult.message);
-        }
+        showError(validationResult.message);
         return false; // 返回处理失败
     }
     // 4. 更新坐标显示和全局UI
@@ -231,13 +219,7 @@ function handleDataValidation() {
  * 处理数据确认，函数未被使用
  */
 /*function handleDataConfirmation() {
-    // 完成矩阵录入 - 替换alert为popup弹窗
-    if (typeof showPopup === 'function') {
-        showPopup(`矩阵录入完成！\n维度: ${state.matrixData.rows}×${state.matrixData.cols}\n数据已保存`, 'success');
-    } else {
-        alert(`矩阵录入完成！\n维度: ${state.matrixData.rows}×${state.matrixData.cols}\n数据已保存`);
-    }
-
+    showSuccess(`矩阵录入完成！\n维度: ${state.matrixData.rows}×${state.matrixData.cols}\n数据已保存`);
     // 可以在这里添加后续处理逻辑，比如发送到服务器或进行矩阵运算
 }*/
 
@@ -321,11 +303,7 @@ function Next() {
  */
 function Undo() {
     if (state.previousStates.length === 0) {
-        if (typeof showPopup === 'function') {
-            showPopup('没有可撤销的操作', 'warning');
-        } else {
-            alert('没有可撤销的操作');
-        }
+        showWarning('没有可撤销的操作');
         return;
     }
 
@@ -408,11 +386,7 @@ function handleQuickInputMatrix() {
         return success;
     } else {
         // 如果quickinput.js未加载，显示错误提示
-        if (typeof showPopup === 'function') {
-            showPopup('快速录入功能未加载，请检查quickinput.js文件', 'error');
-        } else {
-            alert('快速录入功能未加载，请检查quickinput.js文件');
-        }
+        showError('快速录入功能未加载，请检查quickinput.js文件');
         return false;
     }
 }

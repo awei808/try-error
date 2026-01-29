@@ -3,7 +3,7 @@ class PopupManager {
     constructor() {
         this.popupBox = document.getElementById('popupBox');
         this.maxPopups = 3; // 最多同时存在3个弹窗
-        this.popupTimeout = 5000; // 5秒后自动消失
+        this.popupTimeout = 3500; // 3.5秒后自动消失
         this.currentPopups = new Map(); // 存储弹窗ID和对应的元素
         
         this.init();
@@ -159,6 +159,9 @@ class PopupManager {
             clearTimeout(parseInt(timeoutId));
         }
         
+        // 立即从currentPopups中删除，确保弹窗数量限制正确生效
+        this.currentPopups.delete(popupId);
+
         // 添加淡出动画
         popupDiv.classList.add('fade-out');
         
@@ -205,9 +208,40 @@ function showPopup(message, type = 'error') {
     popupManager.showPopup(message, type);
 }
 
-// 兼容旧版本的showError函数
-function showError(message, type = 'error') {
-    showPopup(message, type);
+
+/**
+ * 显示错误消息
+ * @param {string} message - 错误消息
+ */
+function showError(message) {
+    if (typeof showPopup === 'function') {
+        showPopup(message, 'error');
+    } else {
+        alert(message);
+    }
+}
+/**
+ * 显示成功消息
+ * @param {string} message - 成功消息
+ */
+function showSuccess(message) {
+    if (typeof showPopup === 'function') {
+        showPopup(message, 'success');
+    } else {
+        alert(message);
+    }
+}
+
+/**
+ * 显示警告消息
+ * @param {string} message - 警告消息
+ */
+function showWarning(message) {
+    if (typeof showPopup === 'function') {
+        showPopup(message, 'warning');
+    } else {
+        alert(message);
+    }
 }
 
 // 全局弹窗清除函数
@@ -224,12 +258,12 @@ function clearAllErrors() {
 window.popupManager = popupManager;
 window.showPopup = showPopup;
 window.showError = showError;
+window.showSuccess = showSuccess;
+window.showWarning = showWarning;
 window.clearAllPopups = clearAllPopups;
 window.clearAllErrors = clearAllErrors;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     console.log('弹窗系统已初始化');
-    
-
 });

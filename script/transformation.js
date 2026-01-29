@@ -1,3 +1,4 @@
+// ====================全局变量及基础代码====================
 // 初等变换符号状态管理
 let symbolStatus = {
     currentSymbol: '',
@@ -5,61 +6,6 @@ let symbolStatus = {
 };
 
 const allowedVariables = ['a', 'b', 'c', 'd', 'm', 'n', 'x', 'y', 'z', 'λ'];
-
-// 初始化函数
-function initTransformationButtons() {
-    // 获取所有按钮和输入框
-    const buttonChange = document.getElementById('button-change');
-    const buttonAdd = document.getElementById('button-add');
-    const buttonSub = document.getElementById('button-sub');
-    const buttonMul = document.getElementById('button-mul');
-    const transformCoefficient = document.getElementById('transform-coefficient');
-    const transformOperator = document.getElementById('transform-operator');
-
-    // 为按钮绑定点击事件
-    buttonChange.addEventListener('click', function () {
-        setActiveSymbol('↔', buttonChange);
-        // 隐藏系数输入框
-        transformCoefficient.style.display = 'none';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '↔';
-        }
-    });
-
-    buttonAdd.addEventListener('click', function () {
-        setActiveSymbol('+', buttonAdd);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '+';
-        }
-    });
-
-    buttonSub.addEventListener('click', function () {
-        setActiveSymbol('−', buttonSub);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '−';
-        }
-    });
-
-    buttonMul.addEventListener('click', function () {
-        setActiveSymbol('×', buttonMul);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '×';
-        }
-    });
-
-    // 初始化状态
-    resetButtonStyles();
-}
 
 // 设置活动符号和按钮样式
 function setActiveSymbol(symbol, activeButton) {
@@ -195,6 +141,7 @@ function initTransformationButtons() {
     resetButtonStyles();
 }
 
+// ==================== 相关计算函数 ====================
 // 执行初等变换功能
 function executeElementaryTransformation() {
     try {

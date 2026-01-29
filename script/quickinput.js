@@ -609,30 +609,6 @@ function displayMatrixTable() {
     console.log('表格显示成功');
 }
 
-/**
- * 显示错误消息
- * @param {string} message - 错误消息
- */
-function showError(message) {
-    if (typeof showPopup === 'function') {
-        showPopup(message, 'error');
-    } else {
-        alert(message);
-    }
-}
-
-/**
- * 显示成功消息
- * @param {string} message - 成功消息
- */
-function showSuccess(message) {
-    if (typeof showPopup === 'function') {
-        showPopup(message, 'success');
-    } else {
-        alert(message);
-    }
-}
-
 // DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
     initQuickInput();
