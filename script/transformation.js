@@ -4,6 +4,8 @@ let symbolStatus = {
     activeButton: null
 };
 
+const allowedVariables = ['a', 'b', 'c', 'd', 'm', 'n', 'x', 'y', 'z', 'λ'];
+
 // 初始化函数
 function initTransformationButtons() {
     // 获取所有按钮和输入框
@@ -99,11 +101,99 @@ function getCurrentSymbol() {
     return symbolStatus.currentSymbol;
 }
 
+// ==================== 初始化函数 ====================
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
     // 等待DOM完全加载后初始化
     setTimeout(initTransformationButtons, 100);
 });
+
+// 更新初始化函数，添加执行按钮的初始化
+function initTransformationButtons() {
+    // 获取所有按钮和输入框
+    const buttonChange = document.getElementById('button-change');
+    const buttonAdd = document.getElementById('button-add');
+    const buttonSub = document.getElementById('button-sub');
+    const buttonMul = document.getElementById('button-mul');
+    const transformCoefficient = document.getElementById('transform-coefficient');
+    const transformParam = document.getElementById('transform-param');
+    const transformOperator = document.getElementById('transform-operator');
+
+    // 交换按钮
+    buttonChange.addEventListener('click', function () {
+        setActiveSymbol('↔', buttonChange);
+        // 使用空白占位方式隐藏系数输入框和参数框
+        transformCoefficient.style.visibility = 'hidden';
+        transformCoefficient.style.opacity = '0';
+        transformCoefficient.style.pointerEvents = 'none';
+        
+        transformParam.style.visibility = 'visible';
+        transformParam.style.opacity = '1';
+        transformParam.style.pointerEvents = 'auto';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '↔';
+        }
+    });
+    
+    //加法按钮
+    buttonAdd.addEventListener('click', function () {
+        setActiveSymbol('+', buttonAdd);
+        // 显示系数输入框和参数框
+        transformCoefficient.style.visibility = 'visible';
+        transformCoefficient.style.opacity = '1';
+        transformCoefficient.style.pointerEvents = 'auto';
+        
+        transformParam.style.visibility = 'visible';
+        transformParam.style.opacity = '1';
+        transformParam.style.pointerEvents = 'auto';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '+';
+        }
+    });
+
+    //减法按钮
+    buttonSub.addEventListener('click', function () {
+        setActiveSymbol('−', buttonSub);
+        // 显示系数输入框和参数框
+        transformCoefficient.style.visibility = 'visible';
+        transformCoefficient.style.opacity = '1';
+        transformCoefficient.style.pointerEvents = 'auto';
+        
+        transformParam.style.visibility = 'visible';
+        transformParam.style.opacity = '1';
+        transformParam.style.pointerEvents = 'auto';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '−';
+        }
+    });
+
+    //倍乘按钮
+    buttonMul.addEventListener('click', function () {
+        setActiveSymbol('×', buttonMul);
+        // 显示系数输入框
+        transformCoefficient.style.visibility = 'visible';
+        transformCoefficient.style.opacity = '1';
+        transformCoefficient.style.pointerEvents = 'auto';
+        
+        // 使用空白占位方式隐藏参数框
+        transformParam.style.visibility = 'hidden';
+        transformParam.style.opacity = '0';
+        transformParam.style.pointerEvents = 'none';
+        // 设置运算符值
+        if (transformOperator) {
+            transformOperator.value = '×';
+        }
+    });
+
+    // 初始化执行按钮
+    initTranslateButton();
+
+    // 初始化状态
+    resetButtonStyles();
+}
 
 // 执行初等变换功能
 function executeElementaryTransformation() {
@@ -327,6 +417,49 @@ function parseAndSimplifyCoefficient(coefficientInput) {
     }
 }
 
+// 解析并简化多项式表达式
+function parseAndSimplifyPolynomial(expression) {
+    try {
+        // 使用math.js解析表达式
+        const parsed = math.parse(expression);
+        
+        // 简化表达式
+        const simplified = math.simplify(parsed);
+        
+        // 转换为字符串
+        let result = simplified.toString();
+        
+        // 替换math.js的lambda符号为希腊字母λ
+        result = result.replace(/lambda/g, 'λ');
+        result = result.replace(/Lambda/g, 'Λ');
+        
+        // 移除不必要的括号
+        result = result.replace(/\(([a-zA-Zλ]+)\)/g, '$1');
+        result = result.replace(/\((\d+)\)/g, '$1');
+        
+        return result;
+    } catch (error) {
+        // 如果解析失败，返回原始表达式
+        console.error('多项式解析错误:', error);
+        return expression;
+    }
+}
+
+// 验证表达式中的变量是否都在允许的列表中
+function validatePolynomialVariables(expression) {
+    // 提取所有变量
+    const variables = expression.match(/[a-zA-Zλ]/g) || [];
+    
+    // 检查每个变量是否在允许列表中
+    for (const variable of variables) {
+        if (!allowedVariables.includes(variable)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // 执行行/列交换
 function executeRowColumnSwap(targetType, targetIndex, paramType, paramIndex) {
     const matrix = state.matrixData.elements;
@@ -358,6 +491,11 @@ function executeRowColumnSwap(targetType, targetIndex, paramType, paramIndex) {
 
 // 执行行/列加减
 function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIndex, coefficient, operation) {
+    // 如果系数为空或未定义，默认使用1
+    if (!coefficient || coefficient === '') {
+        coefficient = 1;
+    }
+    
     const matrix = state.matrixData.elements;
     const isAddition = operation === '+';
 
@@ -367,11 +505,32 @@ function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIn
             const targetValue = matrix[targetIndex][j];
             const paramValue = matrix[paramIndex][j];
 
-            // 这里需要实现矩阵元素的加减运算（需要扩展支持多项式运算）
-            // 暂时使用简单实现
-            matrix[targetIndex][j] = isAddition ?
-                `(${targetValue})+${coefficient}*(${paramValue})` :
-                `(${targetValue})-${coefficient}*(${paramValue})`;
+            // 使用math.js执行多项式运算
+            try {
+                // 构建数学表达式
+                let mathExpression;
+                if (isAddition) {
+                    mathExpression = `(${targetValue}) + (${coefficient})*(${paramValue})`;
+                } else {
+                    mathExpression = `(${targetValue}) - (${coefficient})*(${paramValue})`;
+                }
+                
+                // 简化表达式
+                const result = parseAndSimplifyPolynomial(mathExpression);
+                
+                // 验证结果中的变量
+                if (!validatePolynomialVariables(result)) {
+                    throw new Error('表达式包含不允许的变量');
+                }
+                
+                matrix[targetIndex][j] = result;
+            } catch (error) {
+                // 如果计算失败，使用原始拼接方式
+                console.error('多项式计算错误:', error);
+                matrix[targetIndex][j] = isAddition ?
+                    `(${targetValue})+${coefficient}*(${paramValue})` :
+                    `(${targetValue})-${coefficient}*(${paramValue})`;
+            }
         }
 
         return {
@@ -384,9 +543,32 @@ function executeRowColumnAddSubtract(targetType, targetIndex, paramType, paramIn
             const targetValue = matrix[i][targetIndex];
             const paramValue = matrix[i][paramIndex];
 
-            matrix[i][targetIndex] = isAddition ?
-                `(${targetValue})+${coefficient}*(${paramValue})` :
-                `(${targetValue})-${coefficient}*(${paramValue})`;
+            // 使用math.js执行多项式运算
+            try {
+                // 构建数学表达式
+                let mathExpression;
+                if (isAddition) {
+                    mathExpression = `(${targetValue}) + (${coefficient})*(${paramValue})`;
+                } else {
+                    mathExpression = `(${targetValue}) - (${coefficient})*(${paramValue})`;
+                }
+                
+                // 简化表达式
+                const result = parseAndSimplifyPolynomial(mathExpression);
+                
+                // 验证结果中的变量
+                if (!validatePolynomialVariables(result)) {
+                    throw new Error('表达式包含不允许的变量');
+                }
+                
+                matrix[i][targetIndex] = result;
+            } catch (error) {
+                // 如果计算失败，使用原始拼接方式
+                console.error('多项式计算错误:', error);
+                matrix[i][targetIndex] = isAddition ?
+                    `(${targetValue})+${coefficient}*(${paramValue})` :
+                    `(${targetValue})-${coefficient}*(${paramValue})`;
+            }
         }
 
         return {
@@ -431,65 +613,4 @@ function initTranslateButton() {
     if (translateButton) {
         translateButton.addEventListener('click', executeElementaryTransformation);
     }
-}
-
-// 更新初始化函数，添加执行按钮的初始化
-function initTransformationButtons() {
-    // 获取所有按钮和输入框
-    const buttonChange = document.getElementById('button-change');
-    const buttonAdd = document.getElementById('button-add');
-    const buttonSub = document.getElementById('button-sub');
-    const buttonMul = document.getElementById('button-mul');
-    const transformCoefficient = document.getElementById('transform-coefficient');
-    const transformOperator = document.getElementById('transform-operator');
-
-    // 交换按钮
-    buttonChange.addEventListener('click', function () {
-        setActiveSymbol('↔', buttonChange);
-        // 隐藏系数输入框
-        transformCoefficient.style.display = 'none';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '↔';
-        }
-    });
-    
-    //加法按钮
-    buttonAdd.addEventListener('click', function () {
-        setActiveSymbol('+', buttonAdd);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '+';
-        }
-    });
-
-    //减法按钮
-    buttonSub.addEventListener('click', function () {
-        setActiveSymbol('−', buttonSub);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '−';
-        }
-    });
-
-    //倍乘按钮
-    buttonMul.addEventListener('click', function () {
-        setActiveSymbol('×', buttonMul);
-        // 显示系数输入框
-        transformCoefficient.style.display = 'block';
-        // 设置运算符值
-        if (transformOperator) {
-            transformOperator.value = '×';
-        }
-    });
-
-    // 初始化执行按钮
-    initTranslateButton();
-
-    // 初始化状态
-    resetButtonStyles();
 }
