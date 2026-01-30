@@ -347,6 +347,12 @@ function Undo() {
 function startMatrixInput() {
     const quickInput = document.getElementById('input');
 
+    // 如果快速录入输入框存在且不为空，则优先处理快速录入
+    if (quickInput && quickInput.value.trim() !== '') {
+        handleQuickInputMatrix();
+        return;
+    }
+
     // 如果当前是初始状态，切换到维度选择状态
     if (state.currentState === CONFIG.STATES.INIT) {
         // 保存当前状态到历史
@@ -362,13 +368,8 @@ function startMatrixInput() {
         return;
     }
 
-    // 如果快速录入输入框存在且不为空，则处理快速录入
-    if (quickInput && quickInput.value.trim() !== '') {
-        handleQuickInputMatrix();
-    } else {
-        // 否则执行原有的toggleInputMatrix功能
-        elements.inputMatrixDiv.classList.toggle('visible');
-    }
+    // 否则执行原有的toggleInputMatrix功能
+    elements.inputMatrixDiv.classList.toggle('visible');
 }
 
 /**
@@ -389,6 +390,72 @@ function handleQuickInputMatrix() {
         showError('快速录入功能未加载，请检查quickinput.js文件');
         return false;
     }
+}
+
+/**
+ * 切换更多下拉菜单的显示/隐藏
+ */
+function toggleMoreDropdown(event) {
+    event.stopPropagation(); // 阻止事件冒泡
+    const moreDropdown = document.getElementById('moreDropdown');
+    if (moreDropdown) {
+        moreDropdown.classList.toggle('show');
+    }
+}
+
+/**
+ * 导出矩阵为二维数组
+ */
+function exportMatrixToArray() {
+    // 检查是否有矩阵数据
+    if (!state.matrixData || !state.matrixData.elements) {
+        showError('没有可导出的矩阵数据');
+        return;
+    }
+
+    const { rows, cols, elements } = state.matrixData;
+    
+    // 将矩阵元素转换为二维数组字符串
+    const matrixArray = [];
+    for (let i = 0; i < rows; i++) {
+        const row = [];
+        for (let j = 0; j < cols; j++) {
+            row.push(elements[i][j] || '0');
+        }
+        matrixArray.push(`[${row.join(', ')}]`);
+    }
+    
+    const matrixString = `[${matrixArray.join(', ')}]`;
+    
+    // 复制到剪贴板
+    navigator.clipboard.writeText(matrixString).then(() => {
+        // 显示成功消息
+        showSuccess('矩阵数据已复制到剪贴板！');
+        
+        // 显示矩阵数据
+        const matrixDataDisplay = document.getElementById('matrixDataDisplay');
+        if (matrixDataDisplay) {
+            matrixDataDisplay.textContent = `矩阵数据: ${matrixString}`;
+            matrixDataDisplay.style.display = 'block';
+        }
+        
+        // 关闭下拉菜单
+        const moreDropdown = document.getElementById('moreDropdown');
+        if (moreDropdown) {
+            moreDropdown.classList.remove('show');
+        }
+        
+    }).catch(err => {
+        console.error('复制失败:', err);
+        showError('复制失败，请手动复制以下内容: ' + matrixString);
+        
+        // 即使复制失败也显示数据
+        const matrixDataDisplay = document.getElementById('matrixDataDisplay');
+        if (matrixDataDisplay) {
+            matrixDataDisplay.textContent = `矩阵数据: ${matrixString}`;
+            matrixDataDisplay.style.display = 'block';
+        }
+    });
 }
 /**
  * 处理鼠标按下事件
@@ -432,6 +499,29 @@ function setupEventListeners() {
     elements.nextButton.addEventListener('click', Next);
     // 添加录入矩阵按钮点击事件
     elements.buttonInputMatrix.addEventListener('click', startMatrixInput);
+    
+    // 添加更多按钮点击事件
+    const moreButton = document.getElementById('moreButton');
+    const moreDropdown = document.getElementById('moreDropdown');
+    if (moreButton && moreDropdown) {
+        moreButton.addEventListener('click', toggleMoreDropdown);
+        
+        // 点击页面其他区域时关闭下拉菜单
+        document.addEventListener('click', function(event) {
+            if (!moreButton.contains(event.target) && !moreDropdown.contains(event.target)) {
+                moreDropdown.classList.remove('show');
+            }
+        });
+    }
+    
+    // 添加导出矩阵按钮点击事件
+    const exportMatrixButton = document.getElementById('exportMatrixButton');
+    if (exportMatrixButton) {
+        exportMatrixButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            exportMatrixToArray();
+        });
+    }
 }
 
 // ==================== 网格操作函数 ====================
@@ -885,7 +975,6 @@ function bindRowColumnIndexEvents() {
     // 为windowDiv添加点击事件监听器，处理行列索引按钮点击
     const eventListener = function (e) {
         const target = e.target;
-        console.log('点击了元素:', target.id); // 调试用，打印点击的元素ID
         // 判断是否点击了行/列标识按钮（ID以button_add_r或button_add_c开头）
         if (target.id.startsWith('button_add_r') || target.id.startsWith('button_add_c')) {
             const type = target.id.includes('r') ? 'r' : 'c';
